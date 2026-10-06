@@ -120,3 +120,47 @@ Tất cả đều là **CC0 (public domain)**: dùng tự do, kể cả thương
 [kenney]: https://kenney.nl/assets/impact-sounds
 [esa]: https://opengameart.org/node/15203
 [pirate]: https://opengameart.org/content/pirate-ship-theme-loop
+
+---
+
+## 7. Thiết kế v3: giao diện kiểu "bàn chỉ huy", chế độ và bản đồ
+
+Tham khảo từ ảnh chụp màn hình một bản Battleship dạng game console mà người dùng gửi. Các yếu tố đã áp dụng:
+
+| Yếu tố trong ảnh mẫu | Cách làm trong Hải Chiến |
+|---|---|
+| Cờ đuôi nheo chỉ huy (tên, chân dung, năng lượng ⚡) | `.pennant` dùng `clip-path`, chân dung SVG tự vẽ (6 mẫu), hiện ⚡ ở chế độ Chỉ huy hoặc số tàu còn lại ở chế độ Cổ điển |
+| Bàn cờ lớn để ngắm và bản đồ nhỏ "Hạm đội của bạn" | Hai bàn cờ hoán đổi vị trí: lượt mình thì vùng biển địch ở ô lớn, lượt địch thì hạm đội mình ở ô lớn (trễ 0,8 s để kịp xem hiệu ứng) |
+| Lưới trắng mờ kẻ cam, đường viền bờ biển | Ô nước có viền cam mảnh; cạnh giáp đảo hoặc mép bản đồ có viền cam đậm |
+| Chốt trắng (trượt) / chốt đỏ (trúng) | Chốt vẽ bằng `radial-gradient`, ô trúng tô đỏ nhạt |
+| Kỹ năng hình thoi kèm chi phí ⚡ | 4 nút: Bắn thường (0), Ra-đa (3), Bom chùm (5), Không kích (8) |
+| Thanh mô tả kỹ năng có nút ✕ | `.tip` dưới bàn cờ; với Không kích có thêm nút đổi Hàng/Cột (hoặc phím R, chuột phải) |
+| Cột tàu địch còn lại bên phải | `.enemy-fleet`, tàu đã chìm bị gạch ✕ |
+| Nền vách đá và biển | SVG vẽ tay: trời, mặt trời, mây trôi, vách đá hai bên, sóng chuyển động |
+| Nút bánh răng cài đặt | Modal: bật/tắt nhạc, hiệu ứng, rời phòng |
+
+Đã bỏ: emote.
+
+### Chế độ
+- **Cổ điển:** giữ luật v2.
+- **Chỉ huy:** mỗi khi đến lượt thì +1 ⚡, mỗi phát bắn thường trúng thì +1 ⚡, tối đa 10. Dùng kỹ năng sẽ kết thúc lượt. Hai máy tự tính ⚡ theo cùng một quy tắc (bắt đầu lượt, phát trúng, chi phí kỹ năng), nên không cần gửi thêm tin nhắn.
+
+| Kỹ năng | ⚡ | Tác dụng |
+|---|---|---|
+| Ra-đa | 3 | Quét vùng 3×3, đánh dấu vòng xanh lên các ô có tàu chưa bị trúng (không tính là phát bắn) |
+| Bom chùm | 5 | Bắn 5 ô hình chữ thập |
+| Không kích | 8 | Bắn mọi ô còn lại trên một hàng hoặc một cột; có bóng máy bay bay ngang |
+
+### Bản đồ
+Mỗi bản đồ là một danh sách ô đất; không thể đặt tàu hay bắn vào ô đất.
+- **Biển khơi:** 10×10 trống.
+- **Quần đảo:** 11 ô đảo rải rác.
+- **Vịnh hẹp:** 19 ô bờ biển khúc khuỷu ở các góc, giống bố cục trong ảnh mẫu.
+
+Người tạo phòng chọn chế độ và bản đồ. Lựa chọn được gửi kèm tin `hello` (giao thức v3); nếu hai bên khác phiên bản thì game báo cả hai tải lại trang.
+
+### Kiểm thử v3
+- [x] Chỉ huy + Quần đảo: dùng Ra-đa và Bom chùm, chơi hết ván, đấu lại, rời phòng
+- [x] Chỉ huy + Vịnh hẹp: dùng Không kích nhiều lần
+- [x] Cổ điển + Biển khơi
+- [x] Máy tính (1366×860) và điện thoại (390×844, chạm 2 lần để xác nhận kỹ năng)
