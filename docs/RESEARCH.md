@@ -164,3 +164,9 @@ Người tạo phòng chọn chế độ và bản đồ. Lựa chọn được 
 - [x] Chỉ huy + Vịnh hẹp: dùng Không kích nhiều lần
 - [x] Cổ điển + Biển khơi
 - [x] Máy tính (1366×860) và điện thoại (390×844, chạm 2 lần để xác nhận kỹ năng)
+
+---
+
+## 8. Phiên bản v4: tông "Biển hoàng hôn" và giao diện tiếng Anh
+
+Quy tắc giao diện (màu, font, component, băng rôn báo lượt) nằm ở `docs/UI-GUIDE.md`. Từ v4, mọi thay đổi UI làm theo file đó. Giao diện game chuyển hoàn toàn sang tiếng Anh; hướng dẫn mở và chơi game nằm ở `README.md`.

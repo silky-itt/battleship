@@ -1,32 +1,40 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Hải Chiến Online</title>
-<meta name="description" content="Game Battleship (Hải chiến) chơi online 2 người qua mã phòng.">
-<meta name="theme-color" content="#8fd3ff">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Crect width=%2240%22 height=%2240%22 rx=%2211%22 fill=%22%231e4f86%22/%3E%3Cg fill=%22none%22 stroke=%22white%22 stroke-width=%222.6%22 stroke-linecap=%22round%22%3E%3Ccircle cx=%2220%22 cy=%2210.5%22 r=%223%22/%3E%3Cpath d=%22M20 13.5V31M14 18h12M10 24c0 4.5 4.5 7 10 7s10-2.5 10-7%22/%3E%3C/g%3E%3C/svg%3E">
+<title>Sea Battle Online</title>
+<meta name="description" content="Two-player online Battleship. Create a room, share the code, sink your friend's fleet.">
+<meta name="theme-color" content="#F3B45E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Crect width=%2240%22 height=%2240%22 rx=%2211%22 fill=%22%231E5560%22/%3E%3Cg fill=%22none%22 stroke=%22white%22 stroke-width=%222.6%22 stroke-linecap=%22round%22%3E%3Ccircle cx=%2220%22 cy=%2210.5%22 r=%223%22/%3E%3Cpath d=%22M20 13.5V31M14 18h12M10 24c0 4.5 4.5 7 10 7s10-2.5 10-7%22/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
+/* Theme tokens: see docs/UI-GUIDE.md ("Golden hour sea"). */
 :root{
-  --text:#0b2a3c; --muted:#4f6f84; --line:#d3e5ef;
-  --card:rgba(255,255,255,.84); --chip:#eef7fc;
-  --shadow:0 2px 4px rgba(10,60,100,.08),0 14px 34px rgba(10,60,110,.16);
-  --navy:#1b4479; --navy-2:#12325c; --navy-3:#0c2445; --gold:#f2c14e; --gold-2:#c8922a;
-  --accent:#0284c7; --orange:#ea580c; --orange-l:rgba(234,88,12,.42);
-  --hit:#dc2626; --good:#059669; --warn:#d97706; --energy:#fbbf24;
-  --pv-ok:rgba(16,185,129,.55); --pv-bad:rgba(239,68,68,.55);
+  --sky-top:#F3B45E; --sky-mid:#F6C66B; --sky-low:#FBE3A6; --sun:#FFF1C1;
+  --sea-top:#3A9AA6; --sea-mid:#2E8C9A; --sea-deep:#1F6C7A;
+  --cliff-lit:#E2B07A; --cliff:#A9876A; --cliff-shade:#6E5442;
+  --panel:rgba(255,244,220,.9); --panel-solid:#FFF4DC; --panel-border:#E7C98A;
+  --ink:#3B2A12; --ink-soft:#6E5230;
+  --amber:#F2B230; --amber-dk:#E09A1A; --gold-hi:#FFC845; --wood:#5A3E1B;
+  --teal:#1E5560; --teal-dk:#123E46; --cream:#FFF4DC;
+  --coral:#C2412D; --coral-dk:#9E2F1F; --hit:#D93A2B; --success:#23805A;
+  --coast:#B4531A; --grid:rgba(185,138,78,.55);
+  --shadow:0 2px 4px rgba(90,62,27,.10),0 10px 28px rgba(90,62,27,.22);
+  --pv-ok:rgba(35,128,90,.5); --pv-bad:rgba(217,58,43,.5);
+  --f-display:'Lilita One',system-ui,sans-serif;
+  --f-body:'Nunito',system-ui,-apple-system,sans-serif;
   color-scheme:light;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font-family:'Be Vietnam Pro',system-ui,-apple-system,sans-serif;color:var(--text);min-height:100vh;line-height:1.45;background:#cdeeff;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body{font-family:var(--f-body);font-weight:600;color:var(--ink);min-height:100vh;line-height:1.45;background:var(--sky-mid);-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 .hidden{display:none!important}
+b,strong{font-weight:900}
 
 /* ---------- Scenic background ---------- */
 #scene{position:fixed;inset:0;z-index:-1;overflow:hidden}
@@ -35,9 +43,11 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 @keyframes clouds{to{transform:translateX(-160px)}}
 #scene .waves{animation:wavesX 9s linear infinite}
 #scene .waves2{animation:wavesX 14s linear infinite reverse}
+#scene .glint{animation:glint 3.2s ease-in-out infinite alternate}
 @keyframes wavesX{to{transform:translateX(-200px)}}
-.bg-ship{position:absolute;height:22px;animation:sail 60s linear infinite;opacity:.85}
-.bg-ship svg{height:100%;width:auto;display:block;filter:drop-shadow(0 3px 2px rgba(0,30,60,.3))}
+@keyframes glint{from{opacity:.45}to{opacity:.9}}
+.bg-ship{position:absolute;height:22px;animation:sail 60s linear infinite;opacity:.9}
+.bg-ship svg{height:100%;width:auto;display:block;filter:drop-shadow(0 3px 2px rgba(40,20,0,.3)) sepia(.25)}
 @keyframes sail{from{left:-160px}to{left:105%}}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:90}
 .plane-fx{position:fixed;left:0;top:0;width:90px;height:90px;pointer-events:none;z-index:91}
@@ -52,79 +62,82 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 /* ---------- Top bar ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand svg{width:40px;height:40px;flex:none;filter:drop-shadow(0 4px 8px rgba(18,50,92,.35))}
-h1{font-size:22px;margin:0;font-weight:900;letter-spacing:-.01em;line-height:1.05;color:var(--navy-3);text-shadow:0 1px 0 rgba(255,255,255,.7)}
-.brand small{display:block;font-size:10.5px;color:var(--navy);text-transform:uppercase;letter-spacing:.16em;font-weight:800}
+.brand svg{width:42px;height:42px;flex:none;filter:drop-shadow(0 4px 6px rgba(90,62,27,.35))}
+h1{font-family:var(--f-display);font-weight:400;font-size:26px;margin:0;line-height:1;color:var(--cream);letter-spacing:.01em;-webkit-text-stroke:1.5px var(--wood);paint-order:stroke fill;text-shadow:0 3px 0 var(--wood)}
+.brand small{display:block;margin-top:3px;font-size:11px;color:var(--wood);text-transform:uppercase;letter-spacing:.14em;font-weight:900}
 .hdr-right{display:flex;align-items:center;gap:8px}
-.score{white-space:nowrap;display:flex;align-items:center;gap:8px;background:linear-gradient(var(--navy),var(--navy-2));color:#fff;border:2px solid var(--gold);border-radius:999px;padding:5px 14px;font-size:13px;box-shadow:var(--shadow)}
-.score span{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85;font-weight:600}
-.score b{font-variant-numeric:tabular-nums;font-size:16px;color:var(--gold)}
-.gear{width:44px;height:44px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 35% 30%,#3b78c4,var(--navy-2));color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 2px var(--navy-2),var(--shadow);transition:transform .25s}
+.score{white-space:nowrap;display:flex;align-items:center;gap:8px;background:linear-gradient(var(--teal),var(--teal-dk));color:var(--cream);border:2px solid var(--amber);border-radius:999px;padding:5px 14px;font-size:13px;box-shadow:var(--shadow)}
+.score span{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}
+.score b{font-family:var(--f-display);font-weight:400;font-variant-numeric:tabular-nums;font-size:18px;color:var(--gold-hi)}
+.gear{width:46px;height:46px;border-radius:50%;border:3px solid var(--cream);background:radial-gradient(circle at 35% 30%,#2f7a86,var(--teal-dk));color:var(--cream);display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 2px var(--wood),var(--shadow);transition:transform .25s}
 .gear:hover{transform:rotate(60deg)}
 .gear svg{width:22px;height:22px}
 
 /* ---------- Generic UI ---------- */
-.card{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.95);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
-h2{font-size:17px;margin:0;font-weight:800}
-h3{font-size:12px;margin:16px 0 8px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--navy)}
-.muted{color:var(--muted)}
+.card{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:2px solid var(--panel-border);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+h2{font-family:var(--f-display);font-weight:400;font-size:21px;margin:0;letter-spacing:.01em;color:var(--ink)}
+h3{font-size:12px;margin:16px 0 8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--coast)}
+.muted{color:var(--ink-soft)}
 .small{font-size:13px}
-.btn{font:inherit;font-weight:800;font-size:15px;border:1px solid var(--line);background:#fff;color:var(--text);padding:10px 16px;border-radius:12px;cursor:pointer;transition:transform .08s,border-color .2s,filter .2s;white-space:nowrap}
-.btn:hover:not(:disabled){border-color:var(--accent)}
-.btn:active:not(:disabled){transform:scale(.97)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn.primary{background:linear-gradient(180deg,#2c66b0,var(--navy-2));border:2px solid var(--gold);color:#fff;box-shadow:0 6px 16px rgba(18,50,92,.35)}
-.btn.primary:hover:not(:disabled){filter:brightness(1.1)}
-.btn.orange{background:linear-gradient(180deg,#fb923c,var(--orange));border-color:var(--orange);color:#fff;box-shadow:0 6px 16px rgba(234,88,12,.3)}
-.btn.big{width:100%;padding:14px;font-size:16px;text-transform:uppercase;letter-spacing:.05em}
-.btn.ghost{background:rgba(255,255,255,.6)}
-.btn.sm{padding:7px 12px;font-size:13px}
-input[type=text]{font:inherit;font-size:15px;width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--text);outline:none}
-input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(2,132,199,.2)}
-kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:#fff}
+.btn{font:inherit;font-weight:900;font-size:15px;border:2px solid var(--panel-border);background:var(--panel-solid);color:var(--ink);padding:9px 16px;border-radius:12px;cursor:pointer;transition:transform .08s,box-shadow .12s,filter .12s;white-space:nowrap;box-shadow:0 3px 0 var(--panel-border)}
+.btn:hover:not(:disabled){filter:brightness(1.04)}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--panel-border)}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn.primary{background:linear-gradient(180deg,var(--gold-hi),var(--amber) 55%,var(--amber-dk));border-color:var(--wood);color:var(--ink);box-shadow:0 3px 0 var(--wood),0 8px 16px rgba(90,62,27,.25)}
+.btn.primary:active:not(:disabled){box-shadow:0 1px 0 var(--wood)}
+.btn.orange{background:linear-gradient(180deg,#d9573f,var(--coral));border-color:var(--coral-dk);color:#fff;box-shadow:0 3px 0 var(--coral-dk)}
+.btn.orange:active:not(:disabled){box-shadow:0 1px 0 var(--coral-dk)}
+.btn.big{width:100%;padding:13px;font-family:var(--f-display);font-weight:400;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.btn.ghost{background:rgba(255,244,220,.6)}
+.btn.sm{padding:6px 12px;font-size:13px}
+input[type=text]{font:inherit;font-size:15px;font-weight:700;width:100%;padding:11px 14px;border-radius:12px;border:2px solid var(--panel-border);background:#fffaf0;color:var(--ink);outline:none}
+input[type=text]::placeholder{color:#a08660}
+input[type=text]:focus{border-color:var(--amber-dk);box-shadow:0 0 0 3px rgba(242,178,48,.35)}
+kbd{font-family:inherit;font-size:12px;font-weight:900;border:1px solid var(--panel-border);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:#fffaf0}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
 
 /* ---------- Lobby ---------- */
 .lobby{max-width:640px;margin:8px auto 0}
 .hero{text-align:center;margin:4px 0 18px}
-.hero .big-title{font-size:clamp(30px,6.5vw,52px);font-weight:900;letter-spacing:-.02em;margin:0;line-height:1.05;color:#fff;text-shadow:0 3px 0 var(--navy-2),0 6px 18px rgba(12,36,69,.45);-webkit-text-stroke:1px var(--navy-2)}
-.hero p{margin:10px 0 0;color:var(--navy-3);font-weight:600;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.hero .big-title{font-family:var(--f-display);font-size:clamp(40px,8vw,68px);margin:0;line-height:1;color:var(--gold-hi);-webkit-text-stroke:3px var(--wood);paint-order:stroke fill;text-shadow:0 5px 0 var(--wood),0 10px 24px rgba(90,62,27,.35);letter-spacing:.01em}
+.hero p{margin:12px 0 0;color:var(--ink);font-weight:800;text-shadow:0 1px 0 rgba(255,241,193,.8)}
 .ava-pick{display:flex;gap:8px;flex-wrap:wrap}
 .ava-pick button{width:54px;height:54px;padding:0;border-radius:50%;border:3px solid transparent;background:none;cursor:pointer;transition:transform .15s}
-.ava-pick button.sel{border-color:var(--gold);box-shadow:0 0 0 2px var(--navy-2);transform:scale(1.08)}
+.ava-pick button.sel{border-color:var(--amber);box-shadow:0 0 0 2px var(--wood);transform:scale(1.08)}
 .ava-pick svg{width:100%;height:100%;display:block;border-radius:50%}
 .opt-grid{display:grid;gap:8px}
 .opt-grid.two{grid-template-columns:1fr 1fr}
 .opt-grid.three{grid-template-columns:repeat(3,1fr)}
-.opt{text-align:left;font:inherit;background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;color:var(--text);transition:border-color .2s,box-shadow .2s}
-.opt b{display:block;font-size:14px}
-.opt span{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px}
-.opt.sel{border-color:var(--navy);box-shadow:0 0 0 3px rgba(242,193,78,.6)}
-.opt .thumb{display:grid;grid-template-columns:repeat(10,1fr);gap:1px;width:100%;aspect-ratio:1;margin-bottom:6px;border-radius:6px;overflow:hidden;background:#fff}
-.opt .thumb i{background:#bfe6f7}
-.opt .thumb i.l{background:#86c46a}
-.host-note{font-size:12px;color:var(--muted);margin:6px 0 0}
-.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:16px 0}
-.or::before,.or::after{content:'';flex:1;height:1px;background:var(--line)}
+.opt{text-align:left;font:inherit;background:#fffaf0;border:2px solid var(--panel-border);border-radius:14px;padding:10px 12px;cursor:pointer;color:var(--ink);transition:border-color .2s,box-shadow .2s}
+.opt b{display:block;font-family:var(--f-display);font-weight:400;font-size:17px;letter-spacing:.01em}
+.opt span{display:block;font-size:12px;color:var(--ink-soft);line-height:1.35;margin-top:2px}
+.opt.sel{border-color:var(--wood);background:#fff3d1;box-shadow:0 0 0 3px rgba(242,178,48,.55)}
+.opt .thumb{display:grid;grid-template-columns:repeat(10,1fr);gap:1px;width:100%;aspect-ratio:1;margin-bottom:6px;border-radius:6px;overflow:hidden;background:var(--sea-deep);padding:1px}
+.opt .thumb i{background:#62b7c0}
+.opt .thumb i.l{background:#9CC46B}
+.host-note{font-size:12px;color:var(--ink-soft);margin:6px 0 0}
+.or{display:flex;align-items:center;gap:12px;color:var(--ink-soft);font-size:13px;margin:16px 0}
+.or::before,.or::after{content:'';flex:1;height:2px;background:var(--panel-border)}
 .join-row{display:flex;gap:8px}
-.join-row input{text-transform:uppercase;letter-spacing:.2em;font-weight:800;text-align:center}
+.join-row input{text-transform:uppercase;letter-spacing:.2em;font-weight:900;text-align:center}
 .msg{min-height:20px;margin:12px 0 0;font-size:14px}
-.msg.err{color:var(--hit)}
+.msg.err{color:var(--coral)}
 .rules{margin-top:14px}
-.rules ul{margin:0;padding-left:18px}
+.rules ul{margin:8px 0 0;padding-left:18px}
 .rules li{margin:5px 0;font-size:14px}
 
 /* ---------- Wait ---------- */
 .wait{max-width:470px;margin:20px auto;text-align:center}
-.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:800;color:var(--muted);margin:0}
-.code{font-size:clamp(38px,11vw,58px);font-weight:900;letter-spacing:.18em;margin:6px 0 4px;color:var(--navy);font-variant-numeric:tabular-nums}
+.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:900;color:var(--coast);margin:0}
+.code{font-family:var(--f-display);font-size:clamp(44px,12vw,64px);letter-spacing:.14em;margin:4px 0 2px;color:var(--gold-hi);-webkit-text-stroke:2px var(--wood);paint-order:stroke fill;text-shadow:0 4px 0 var(--wood)}
 .share{display:flex;gap:8px;margin:16px 0}
 .share input{font-size:13px}
-.waiting{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0;font-weight:700}
-.pulse{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(2,132,199,.35)}70%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
-.hint{font-size:12px;color:var(--warn);margin:0 0 12px}
+.waiting{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0;font-weight:800}
+.pulse{width:10px;height:10px;border-radius:50%;background:var(--amber-dk);animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,154,26,.45)}70%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.hint{font-size:12px;color:var(--coast);margin:0 0 12px}
 .tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px}
-.tag{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);color:var(--navy);white-space:nowrap}
+.tag{font-size:12px;font-weight:900;padding:3px 10px;border-radius:999px;background:var(--teal);color:var(--cream);white-space:nowrap}
 
 /* ---------- Game layout ---------- */
 .game{display:grid;gap:14px 20px;justify-content:center;align-items:start;
@@ -136,59 +149,58 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 #slotMini{grid-area:mini} #slotBig{grid-area:big} #tip{grid-area:tip} #enemyFleet{grid-area:fleet} #dock{grid-area:dock}
 
 /* Commander pennant */
-.pennant{width:170px;padding:3px;background:linear-gradient(var(--gold),var(--gold-2));clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%);filter:drop-shadow(0 8px 14px rgba(12,36,69,.35));justify-self:center}
-.pennant .in{clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%);background:linear-gradient(180deg,#2a5ea3 0%,var(--navy-2) 55%,var(--navy-3) 100%);color:#fff;text-align:center;padding:8px 10px 34px;position:relative}
-.cmd-name{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cmd-ava{width:104px;height:104px;margin:8px auto 6px;border-radius:50%;padding:4px;background:linear-gradient(#fff,#cfe3f3);box-shadow:0 0 0 3px var(--navy-3),0 4px 10px rgba(0,0,0,.3)}
+.pennant{width:170px;padding:3px;background:linear-gradient(var(--gold-hi),var(--amber-dk));clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%);filter:drop-shadow(0 8px 12px rgba(90,62,27,.35));justify-self:center}
+.pennant .in{clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%);background:linear-gradient(180deg,#2b7380 0%,var(--teal) 50%,var(--teal-dk) 100%);color:var(--cream);text-align:center;padding:8px 10px 34px;position:relative}
+.cmd-name{font-family:var(--f-display);font-size:18px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmd-ava{width:104px;height:104px;margin:8px auto 6px;border-radius:50%;padding:4px;background:linear-gradient(var(--cream),#e9cf95);box-shadow:0 0 0 3px var(--teal-dk),0 4px 10px rgba(0,0,0,.3)}
 .cmd-ava svg{width:100%;height:100%;display:block;border-radius:50%}
-.cmd-stat{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:900;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.cmd-stat{display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--f-display);font-size:38px;line-height:1;font-variant-numeric:tabular-nums;color:var(--gold-hi)}
 .cmd-stat svg{width:22px;height:30px}
-.cmd-sub{font-size:12px;font-weight:700;opacity:.85;margin:8px 6px 0;padding-top:6px;border-top:2px dashed rgba(255,255,255,.4)}
+.cmd-sub{font-size:12px;font-weight:800;opacity:.9;margin:8px 6px 0;padding-top:6px;border-top:2px dashed rgba(255,244,220,.4)}
 .pennant.opp{width:140px}
 .pennant.opp .cmd-ava{width:78px;height:78px}
-.pennant.opp .cmd-stat{font-size:26px}
-.pennant.turn .in{background:linear-gradient(180deg,#3577c9 0%,#1d4c8a 55%,#12325c 100%)}
-.pennant.turn{background:linear-gradient(#ffe08a,#f2b33d);animation:glow 1.6s ease-in-out infinite alternate}
-@keyframes glow{from{filter:drop-shadow(0 8px 14px rgba(12,36,69,.35))}to{filter:drop-shadow(0 0 14px rgba(255,214,102,.9))}}
-.ready-badge{display:inline-block;margin-top:6px;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.18)}
-.ready-badge.ok{background:#10b981}
+.pennant.opp .cmd-stat{font-size:28px}
+.pennant.turn{background:linear-gradient(#fff0b8,var(--gold-hi));animation:glow 1.6s ease-in-out infinite alternate}
+@keyframes glow{from{filter:drop-shadow(0 8px 12px rgba(90,62,27,.35))}to{filter:drop-shadow(0 0 16px rgba(255,200,69,.95))}}
+.ready-badge{display:inline-block;margin-top:6px;font-size:11px;font-weight:900;padding:2px 8px;border-radius:999px;background:rgba(255,244,220,.18)}
+.ready-badge.ok{background:var(--success)}
 
 /* Abilities (diamonds) */
 .abilities{display:grid;grid-template-columns:repeat(2,86px);gap:10px 14px;justify-content:center;padding-top:4px}
 .abil{position:relative;width:86px;height:104px;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:#fff}
-.abil .dia{position:absolute;left:11px;top:4px;width:64px;height:64px;transform:rotate(45deg);border-radius:10px;background:linear-gradient(135deg,#d7dde3,#7d8b97);border:3px solid #eef2f5;box-shadow:0 0 0 2px #3b4652,0 8px 14px rgba(0,0,0,.3);transition:transform .15s,box-shadow .2s}
-.abil .ico{position:absolute;left:23px;top:16px;width:40px;height:40px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
-.abil .cost{position:absolute;left:50%;bottom:0;transform:translateX(-50%);background:linear-gradient(var(--navy),var(--navy-3));border:2px solid #fff;color:#fff;font-weight:900;font-size:13px;padding:1px 9px 3px;clip-path:polygon(0 0,100% 0,100% 72%,50% 100%,0 72%);min-width:46px;text-align:center}
+.abil .dia{position:absolute;left:11px;top:4px;width:64px;height:64px;transform:rotate(45deg);border-radius:10px;background:linear-gradient(135deg,#d9cbb0,#8f7b5e);border:3px solid #fbf1dc;box-shadow:0 0 0 2px var(--wood),0 8px 14px rgba(90,62,27,.3);transition:transform .15s,box-shadow .2s}
+.abil .ico{position:absolute;left:23px;top:16px;width:40px;height:40px;filter:drop-shadow(0 2px 2px rgba(60,40,10,.5))}
+.abil .cost{position:absolute;left:50%;bottom:0;transform:translateX(-50%);background:linear-gradient(var(--teal),var(--teal-dk));border:2px solid var(--cream);color:var(--gold-hi);font-weight:900;font-size:13px;padding:1px 9px 3px;clip-path:polygon(0 0,100% 0,100% 72%,50% 100%,0 72%);min-width:46px;text-align:center}
 .abil:hover:not(:disabled) .dia{transform:rotate(45deg) scale(1.06)}
-.abil.sel .dia{background:linear-gradient(135deg,#3b82d6,#1b4479);border-color:#ffe08a;box-shadow:0 0 0 2px var(--gold-2),0 0 22px rgba(255,214,102,.95)}
+.abil.sel .dia{background:linear-gradient(135deg,var(--gold-hi),var(--amber-dk));border-color:#fff7d6;box-shadow:0 0 0 2px var(--wood),0 0 22px rgba(255,200,69,.95)}
 .abil:disabled{cursor:not-allowed}
-.abil:disabled .dia{filter:grayscale(1) brightness(.85);opacity:.6}
+.abil:disabled .dia{filter:grayscale(.8) brightness(.9);opacity:.55}
 .abil:disabled .ico{opacity:.55}
-.mode-info{background:var(--card);border-radius:14px;padding:12px 14px;font-size:13px;box-shadow:var(--shadow)}
-.mode-info b{display:block;color:var(--navy);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.mode-info{background:var(--panel);border:2px solid var(--panel-border);border-radius:14px;padding:12px 14px;font-size:13px;box-shadow:var(--shadow)}
+.mode-info b{display:block;font-family:var(--f-display);font-weight:400;color:var(--coast);font-size:16px;letter-spacing:.02em}
 
 /* Board slots */
 .slot{display:flex;flex-direction:column;align-items:stretch}
 .slot.big{--cell:clamp(26px,min(calc((100vw - 640px) / 10.6),calc((100vh - 220px) / 10.6)),50px)}
 .slot.mini{--cell:17px}
 .game.placing .slot.big{--cell:clamp(26px,min(calc((100vw - 600px) / 10.6),calc((100vh - 220px) / 10.6)),50px)}
-.banner{background:linear-gradient(180deg,#2a5ea3,var(--navy-2));color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:13px;padding:6px 12px;text-align:center;border:1px solid rgba(255,255,255,.5);box-shadow:0 3px 8px rgba(12,36,69,.3);margin:0 0 10px 18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.slot.mini .banner{font-size:11px;padding:5px 8px}
-.banner.me{background:linear-gradient(180deg,#f97316,#c2410c)}
+.banner{background:linear-gradient(180deg,#2b7380,var(--teal-dk));color:var(--cream);font-family:var(--f-display);font-weight:400;text-transform:uppercase;letter-spacing:.06em;font-size:17px;padding:5px 12px;text-align:center;border:2px solid var(--amber);border-radius:6px;box-shadow:0 3px 8px rgba(90,62,27,.3);margin:0 0 10px 18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot.mini .banner{font-size:12px;padding:4px 8px}
+.banner.me{background:linear-gradient(180deg,#d9573f,var(--coral-dk))}
 
 .board{display:grid;grid-template-columns:18px repeat(10,var(--cell));grid-template-rows:18px repeat(10,var(--cell));width:max-content;user-select:none;-webkit-user-select:none;position:relative}
 .slot.mini .board{grid-template-columns:12px repeat(10,var(--cell));grid-template-rows:12px repeat(10,var(--cell))}
-.lbl{display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--navy-3);text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.lbl{display:grid;place-items:center;font-size:11px;font-weight:900;color:var(--wood);text-shadow:0 1px 0 rgba(255,241,193,.8)}
 .slot.mini .lbl{font-size:8px}
-.board-bg{grid-area:2/2/12/12;background:rgba(255,255,255,.52);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);box-shadow:0 12px 30px rgba(10,50,90,.28)}
+.board-bg{grid-area:2/2/12/12;background:rgba(255,244,220,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);box-shadow:0 12px 30px rgba(31,108,122,.35),0 0 0 3px rgba(90,62,27,.15)}
 .cell{position:relative;z-index:1;transition:background .12s}
-.cell.land{z-index:2;background:radial-gradient(circle at 35% 30%,#bfe59a,#7fbb62 75%);box-shadow:inset 0 0 0 2px #f1dfa6,inset 0 -3px 0 2px rgba(60,80,30,.15)!important}
+.cell.land{z-index:2;background:radial-gradient(circle at 35% 30%,#b8d67f,#6E9E4A 78%);box-shadow:inset 0 0 0 2px #F3DDA0,inset 0 -3px 0 2px rgba(60,50,20,.18)!important}
 .cell.land.palm::after{content:'🌴';position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--cell) * .55);line-height:1}
 .cell.can-fire{cursor:crosshair}
-.cell.can-fire:hover{background:rgba(255,255,255,.55)}
-.cell.aim{background:rgba(234,88,12,.32)!important}
+.cell.can-fire:hover{background:rgba(255,200,69,.45)}
+.cell.aim{background:rgba(217,58,43,.3)!important}
 .cell.aim::after{content:'';position:absolute;inset:20%;border:2px solid var(--hit);border-radius:50%}
-.cell.aim-scan{background:rgba(34,197,94,.45)!important;box-shadow:inset 0 0 0 2px rgba(22,163,74,.8)!important}
+.cell.aim-scan{background:rgba(35,128,90,.42)!important;box-shadow:inset 0 0 0 2px rgba(35,128,90,.85)!important}
 .cell.pv-ok{background:var(--pv-ok)}
 .cell.pv-bad{background:var(--pv-bad)}
 .cell.scanning{animation:scanflash .8s ease-out}
@@ -197,12 +209,12 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 /* Ships */
 .ship{margin:2px;position:relative;z-index:3}
 .slot.mini .ship{margin:1px}
-.ship .art{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 2px rgba(0,40,80,.35));animation:bob 3.4s ease-in-out infinite alternate;animation-delay:var(--d,0s)}
+.ship .art{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 2px rgba(40,30,10,.38));animation:bob 3.4s ease-in-out infinite alternate;animation-delay:var(--d,0s)}
 .ship.v .art{animation-name:bobv}
 @keyframes bob{from{transform:translateY(-.8px) rotate(-.35deg)}to{transform:translateY(.8px) rotate(.35deg)}}
 @keyframes bobv{from{transform:translateX(-.8px) rotate(-.35deg)}to{transform:translateX(.8px) rotate(.35deg)}}
 .ship.draggable{cursor:grab;touch-action:none}
-.ship.draggable:hover .art{filter:drop-shadow(0 3px 2px rgba(0,40,80,.35)) drop-shadow(0 0 6px rgba(255,255,255,.95))}
+.ship.draggable:hover .art{filter:drop-shadow(0 3px 2px rgba(40,30,10,.38)) drop-shadow(0 0 6px rgba(255,241,193,.95))}
 .ship.lifted{opacity:.25}
 .ship.just-placed .art{animation:placed .35s cubic-bezier(.2,1.6,.4,1),bob 3.4s ease-in-out .35s infinite alternate}
 .ship.v.just-placed .art{animation:placed .35s cubic-bezier(.2,1.6,.4,1),bobv 3.4s ease-in-out .35s infinite alternate}
@@ -213,7 +225,7 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 .ship.reveal{opacity:.5}
 .ship.reveal .art{animation:none}
 .ship.ghost{position:fixed;z-index:100;margin:0;pointer-events:none;opacity:.95}
-.ship.ghost .art{animation:none;filter:drop-shadow(0 12px 14px rgba(0,40,80,.35))}
+.ship.ghost .art{animation:none;filter:drop-shadow(0 12px 14px rgba(40,30,10,.35))}
 .ship.ghost.bad .art{filter:sepia(1) hue-rotate(-50deg) saturate(5) brightness(.9)}
 .ship.shake{animation:shakeShip .35s}
 @keyframes shakeShip{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
@@ -221,71 +233,89 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 /* Pegs */
 .mark{z-index:4;pointer-events:none;display:grid;place-items:center;position:relative}
 .mark i{display:block;border-radius:50%;width:62%;height:62%}
-.mark.miss i{background:radial-gradient(circle at 50% 50%,#c9d1d8 0 20%,#fff 23% 52%,#dfe5ea 55% 64%,#fff 66% 70%,#aab4bd 72% 100%);box-shadow:0 2px 3px rgba(0,30,60,.35)}
-.mark.miss::before{content:'';position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.55),transparent 70%);z-index:-1}
-.mark.hit{background:rgba(220,38,38,.22)}
+.mark.miss i{background:radial-gradient(circle at 50% 50%,#cdbfa6 0 20%,#fffaf0 23% 52%,#e8dcc4 55% 64%,#fffaf0 66% 70%,#b3a385 72% 100%);box-shadow:0 2px 3px rgba(60,40,10,.35)}
+.mark.miss::before{content:'';position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,rgba(255,250,240,.55),transparent 70%);z-index:-1}
+.mark.hit{background:rgba(217,58,43,.22)}
 .mark.hit i{background:radial-gradient(circle at 50% 50%,#7f1d1d 0 20%,#ef4444 23% 52%,#b91c1c 55% 64%,#f87171 66% 70%,#991b1b 72% 100%);box-shadow:0 2px 4px rgba(80,0,0,.45)}
 .mark.pending::after{content:'';position:absolute;inset:12%;border:2px dashed var(--hit);border-radius:50%;animation:spin 1s linear infinite}
 .mark.pending i{width:16%;height:16%;background:var(--hit)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.mark.detect i{width:44%;height:44%;background:transparent;border:3px solid #16a34a;box-shadow:0 0 0 2px rgba(255,255,255,.8),0 0 10px rgba(34,197,94,.8);animation:det 1.4s ease-in-out infinite alternate}
+.mark.detect i{width:44%;height:44%;background:transparent;border:3px solid var(--success);box-shadow:0 0 0 2px rgba(255,250,240,.85),0 0 10px rgba(35,128,90,.8);animation:det 1.4s ease-in-out infinite alternate}
 @keyframes det{from{transform:scale(.85)}to{transform:scale(1.1)}}
 .mark.fresh i{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
 @keyframes pop{from{transform:translateY(-40%) scale(1.6);opacity:0}to{transform:none;opacity:1}}
 
 /* Enemy fleet column */
-.enemy-fleet{background:rgba(255,255,255,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.9);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:var(--shadow)}
-.enemy-fleet .ttl{font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);text-align:center}
+.enemy-fleet{background:var(--panel);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:2px solid var(--panel-border);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.enemy-fleet .ttl{font-family:var(--f-display);font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--coast);text-align:center}
 .ef-row{display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
 .ef-row .ship{position:relative;width:20px;height:calc(var(--n) * 20px);margin:0}
-.ef-row span{font-size:10px;font-weight:700;color:var(--muted);text-align:center;line-height:1.1}
+.ef-row span{font-size:10.5px;font-weight:800;color:var(--ink-soft);text-align:center;line-height:1.1}
 .ef-row.sunk .ship{filter:grayscale(1) brightness(.6);opacity:.55}
-.ef-row.sunk::after{content:'✕';position:absolute;top:0;left:50%;transform:translateX(-50%);color:var(--hit);font-weight:900;font-size:22px;text-shadow:0 1px 0 #fff}
+.ef-row.sunk::after{content:'✕';position:absolute;top:0;left:50%;transform:translateX(-50%);color:var(--coral);font-weight:900;font-size:22px;text-shadow:0 1px 0 #fff}
 
-/* Tip / status bar under board */
-.tip{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(18,50,92,.92),rgba(12,36,69,.94));color:#fff;border:2px solid var(--gold);border-radius:6px;padding:10px 14px;min-height:52px;box-shadow:var(--shadow);margin-left:18px}
+/* Tip bar under the board */
+.tip{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(30,85,96,.95),rgba(18,62,70,.96));color:var(--cream);border:2px solid var(--amber);border-radius:8px;padding:10px 14px;min-height:52px;box-shadow:var(--shadow);margin-left:18px}
 .tip .t{flex:1;font-size:14px;line-height:1.35}
-.tip .t b{color:#7dd3fc}
-.tip .x{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid #fff;background:radial-gradient(circle at 35% 30%,#f87171,#b91c1c);color:#fff;font-weight:900;cursor:pointer;font-size:16px}
+.tip .t b{color:var(--gold-hi)}
+.tip .x{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--cream);background:radial-gradient(circle at 35% 30%,#e0705d,var(--coral));color:#fff;font-weight:900;cursor:pointer;font-size:16px}
 .tip .sw{flex:none}
 
 /* Dock (placing) */
 .dock{padding:16px}
 .dock-ships{display:flex;flex-direction:column;gap:8px;margin:12px 0;min-height:60px}
-.dock-item{display:flex;align-items:center;gap:12px;cursor:grab;touch-action:none;padding:6px 8px;border-radius:12px;background:linear-gradient(90deg,rgba(44,189,227,.18),rgba(44,189,227,0))}
-.dock-item:hover{background:linear-gradient(90deg,rgba(44,189,227,.32),rgba(44,189,227,.05))}
+.dock-item{display:flex;align-items:center;gap:12px;cursor:grab;touch-action:none;padding:6px 8px;border-radius:12px;background:linear-gradient(90deg,rgba(46,140,154,.22),rgba(46,140,154,0))}
+.dock-item:hover{background:linear-gradient(90deg,rgba(46,140,154,.36),rgba(46,140,154,.05))}
 .dock-item .ship{margin:0;height:28px;flex:none}
 .dock-item.lifted{opacity:.3}
-.dock-item span{font-size:13px;color:var(--muted);font-weight:700}
-.dock-empty{font-size:14px;color:var(--good);font-weight:800;padding:8px 0}
+.dock-item span{font-size:13px;color:var(--ink-soft);font-weight:800}
+.dock-empty{font-size:14px;color:var(--success);font-weight:900;padding:8px 0}
 .dock-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .dock-actions .btn{flex:1}
 
+/* Turn announcement ribbon */
+.turn-banner{position:fixed;left:0;right:0;top:42%;z-index:95;pointer-events:none;display:flex;justify-content:center;transform:translateY(-50%)}
+.turn-banner .rb{position:relative;min-width:min(620px,92vw);padding:12px 70px 14px;text-align:center;clip-path:polygon(0 0,100% 0,96% 50%,100% 100%,0 100%,4% 50%);box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden}
+.turn-banner.mine .rb{background:linear-gradient(180deg,#ffe28a,var(--gold-hi) 45%,var(--amber));color:var(--ink)}
+.turn-banner.enemy .rb{background:linear-gradient(180deg,#dc6a54,var(--coral) 50%,var(--coral-dk));color:#fff}
+.turn-banner .rb::before,.turn-banner .rb::after{content:'';position:absolute;left:0;right:0;height:4px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 14px,transparent 14px 22px)}
+.turn-banner .rb::before{top:5px}
+.turn-banner .rb::after{bottom:5px}
+.turn-banner b{display:block;font-family:var(--f-display);font-weight:400;font-size:clamp(38px,7vw,60px);line-height:1;letter-spacing:.05em}
+.turn-banner.mine b{text-shadow:0 2px 0 rgba(255,255,255,.6)}
+.turn-banner.enemy b{text-shadow:0 3px 0 rgba(90,20,10,.5)}
+.turn-banner span{display:block;font-weight:900;font-size:14px;letter-spacing:.14em;text-transform:uppercase;margin-top:4px;opacity:.9}
+.turn-banner .shine{position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg)}
+.turn-banner.show .rb{animation:ribbon 1.4s cubic-bezier(.2,.8,.2,1) forwards}
+.turn-banner.show .shine{animation:shine 1.4s ease-in-out forwards}
+@keyframes ribbon{0%{transform:translateX(-110vw) skewX(-8deg)}18%{transform:translateX(0) skewX(0)}82%{transform:translateX(0);opacity:1}100%{transform:translateX(110vw) skewX(8deg);opacity:.6}}
+@keyframes shine{0%,20%{left:-40%}60%,100%{left:120%}}
+
 /* Modal */
-.modal{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(8,28,52,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-.modal .card{width:min(440px,100%);text-align:center;background:rgba(255,255,255,.96)}
-.over-title{font-size:38px;font-weight:900;letter-spacing:-.01em;line-height:1.1}
-.over-title.win{color:var(--good)}
-.over-title.lose{color:var(--hit)}
-.over-ava{width:96px;height:96px;margin:0 auto 8px;border-radius:50%;box-shadow:0 0 0 4px var(--gold),0 6px 14px rgba(0,0,0,.25);overflow:hidden}
+.modal{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(59,42,18,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.modal .card{width:min(440px,100%);text-align:center;background:var(--panel-solid)}
+.over-title{font-family:var(--f-display);font-size:48px;line-height:1.05;letter-spacing:.02em;-webkit-text-stroke:2px var(--wood);paint-order:stroke fill;text-shadow:0 4px 0 var(--wood)}
+.over-title.win{color:var(--gold-hi)}
+.over-title.lose{color:#e8735f}
+.over-ava{width:96px;height:96px;margin:0 auto 10px;border-radius:50%;box-shadow:0 0 0 4px var(--amber),0 0 0 6px var(--wood),0 6px 14px rgba(0,0,0,.25);overflow:hidden}
 .over-ava svg{width:100%;height:100%;display:block}
 .over-stats{display:flex;justify-content:center;gap:26px;margin:16px 0}
-.over-stats b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
-.over-stats span{font-size:12px;color:var(--muted)}
+.over-stats b{display:block;font-family:var(--f-display);font-weight:400;font-size:28px;font-variant-numeric:tabular-nums;color:var(--teal)}
+.over-stats span{font-size:12px;color:var(--ink-soft)}
 .over-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-weight:700}
-.switch{width:52px;height:30px;border-radius:999px;border:0;background:#cbd5e1;position:relative;cursor:pointer;transition:background .2s}
-.switch::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
-.switch.on{background:var(--good)}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:2px dashed var(--panel-border);font-weight:800}
+.switch{width:52px;height:30px;border-radius:999px;border:2px solid var(--wood);background:#d9c7a3;position:relative;cursor:pointer;transition:background .2s}
+.switch::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fffaf0;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.switch.on{background:var(--success)}
 .switch.on::after{transform:translateX(22px)}
-.credits{font-size:11px;color:var(--muted);margin:14px 0 0}
+.credits{font-size:11px;color:var(--ink-soft);margin:14px 0 0}
 
-#toasts{position:fixed;left:50%;top:70px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;z-index:200;pointer-events:none;width:calc(100% - 32px);max-width:420px}
-.toast{background:rgba(12,36,69,.94);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:800;box-shadow:0 10px 24px rgba(0,40,80,.3);border:2px solid var(--gold);animation:tin .25s ease-out;text-align:center}
-.toast.good{background:linear-gradient(90deg,#047857,#10b981)}
-.toast.bad{background:linear-gradient(90deg,#b91c1c,#ea580c)}
-.toast.out{opacity:0;transform:translateY(-8px);transition:.3s}
-@keyframes tin{from{opacity:0;transform:translateY(-10px)}}
+#toasts{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;z-index:200;pointer-events:none;width:calc(100% - 32px);max-width:420px}
+.toast{background:linear-gradient(180deg,var(--teal),var(--teal-dk));color:var(--cream);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:900;box-shadow:0 10px 24px rgba(90,62,27,.3);border:2px solid var(--amber);animation:tin .25s ease-out;text-align:center}
+.toast.good{background:linear-gradient(180deg,#2a9a6c,var(--success))}
+.toast.bad{background:linear-gradient(180deg,#d9573f,var(--coral))}
+.toast.out{opacity:0;transform:translateY(8px);transition:.3s}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}}
 
 /* ---------- Responsive ---------- */
 @media (max-width:1060px){
@@ -297,30 +327,29 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
   .slot.mini{--cell:min(calc((50vw - 44px) / 10.6),17px);justify-self:center}
   #slotBig,#tip{justify-self:center;width:max-content;max-width:100%}
   #tip{width:100%;margin-left:0}
-  .banner{margin-left:18px}
   .slot.mini .banner{margin-left:12px}
   .abilities{grid-template-columns:repeat(4,78px);gap:4px 6px}
   .abil{width:78px;height:96px}
   .abil .dia{left:12px;width:54px;height:54px}
   .abil .ico{left:21px;top:13px;width:36px;height:36px}
-  /* Commanders become compact chips */
   .pennant,.pennant.opp{width:100%;clip-path:none;border-radius:14px;padding:2px;justify-self:stretch}
   .pennant .in,.pennant.opp .in{clip-path:none;border-radius:12px;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ava name" "ava stat";align-items:center;column-gap:10px;text-align:left;padding:8px 10px}
   .cmd-ava,.pennant.opp .cmd-ava{grid-area:ava;width:52px;height:52px;margin:0;padding:2px}
-  .cmd-name{grid-area:name;font-size:14px}
-  .cmd-stat,.pennant.opp .cmd-stat{grid-area:stat;justify-content:flex-start;font-size:22px}
+  .cmd-name{grid-area:name;font-size:16px}
+  .cmd-stat,.pennant.opp .cmd-stat{grid-area:stat;justify-content:flex-start;font-size:24px}
   .cmd-stat svg{width:14px;height:20px}
   .cmd-sub,.ready-badge{display:none}
   .enemy-fleet{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:flex-end;padding:8px;gap:8px}
   .enemy-fleet .ttl{width:100%}
   .ef-row span{display:none}
   .ef-row .ship{width:14px;height:calc(var(--n) * 14px)}
+  .turn-banner .rb{padding:10px 40px 12px}
 }
 @media (max-width:480px){
   .score span,.brand small{display:none}
+  h1{font-size:22px}
   .ava-pick{gap:6px}
   .ava-pick button{width:44px;height:44px}
-  h1{font-size:20px}
 }
 @media (max-width:420px){
   .abilities{grid-template-columns:repeat(4,70px)}
@@ -331,6 +360,7 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
+  .turn-banner .rb{transform:none}
 }
 </style>
 </head>
@@ -338,36 +368,43 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 <div id="scene" aria-hidden="true">
   <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
     <defs>
-      <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc9fb"/><stop offset=".55" stop-color="#cdeeff"/><stop offset="1" stop-color="#f1fbff"/></linearGradient>
-      <radialGradient id="sunG"><stop offset="0" stop-color="#fffdf0"/><stop offset=".3" stop-color="#fff3b8" stop-opacity=".9"/><stop offset="1" stop-color="#fff3b8" stop-opacity="0"/></radialGradient>
-      <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fdcef"/><stop offset=".25" stop-color="#36b3e0"/><stop offset="1" stop-color="#0d6aa8"/></linearGradient>
-      <linearGradient id="cliffG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d3dcd9"/><stop offset=".45" stop-color="#9fb1ac"/><stop offset="1" stop-color="#617a74"/></linearGradient>
-      <linearGradient id="cliffG2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cdd8d5"/><stop offset=".5" stop-color="#97aaa5"/><stop offset="1" stop-color="#5c746e"/></linearGradient>
-      <linearGradient id="farG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3d3e6"/><stop offset="1" stop-color="#d7ecf6"/></linearGradient>
+      <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3B45E"/><stop offset=".45" stop-color="#F6C66B"/><stop offset=".62" stop-color="#FBE3A6"/></linearGradient>
+      <radialGradient id="sunG"><stop offset="0" stop-color="#FFFBE6"/><stop offset=".18" stop-color="#FFF1C1"/><stop offset=".45" stop-color="#FFE3A0" stop-opacity=".7"/><stop offset="1" stop-color="#FFE3A0" stop-opacity="0"/></radialGradient>
+      <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5FB0AE"/><stop offset=".15" stop-color="#3A9AA6"/><stop offset=".5" stop-color="#2E8C9A"/><stop offset="1" stop-color="#1F6C7A"/></linearGradient>
+      <linearGradient id="glintG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".95"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></linearGradient>
+      <linearGradient id="cliffG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E2B07A"/><stop offset=".45" stop-color="#A9876A"/><stop offset="1" stop-color="#6E5442"/></linearGradient>
+      <linearGradient id="cliffG2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9A774"/><stop offset=".5" stop-color="#9E7E63"/><stop offset="1" stop-color="#65503F"/></linearGradient>
+      <linearGradient id="farG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D99A72"/><stop offset="1" stop-color="#EDBE8A"/></linearGradient>
     </defs>
     <rect width="1600" height="900" fill="url(#skyG)"/>
-    <circle cx="1270" cy="140" r="240" fill="url(#sunG)"/>
-    <g class="clouds" fill="#fff">
-      <g opacity=".95"><ellipse cx="300" cy="120" rx="120" ry="34"/><ellipse cx="360" cy="100" rx="80" ry="40"/><ellipse cx="240" cy="108" rx="60" ry="28"/></g>
-      <g opacity=".85"><ellipse cx="900" cy="80" rx="150" ry="30"/><ellipse cx="960" cy="62" rx="90" ry="36"/><ellipse cx="840" cy="70" rx="70" ry="26"/></g>
-      <g opacity=".8"><ellipse cx="1450" cy="260" rx="110" ry="24"/><ellipse cx="1500" cy="246" rx="70" ry="28"/></g>
-      <g opacity=".7"><ellipse cx="640" cy="230" rx="90" ry="20"/><ellipse cx="690" cy="218" rx="54" ry="22"/></g>
+    <circle cx="1180" cy="430" r="330" fill="url(#sunG)"/>
+    <circle cx="1180" cy="455" r="62" fill="#FFF6D6"/>
+    <g class="clouds">
+      <g fill="#FFE7BF" opacity=".9"><ellipse cx="300" cy="140" rx="130" ry="30"/><ellipse cx="360" cy="122" rx="80" ry="34"/><ellipse cx="240" cy="128" rx="60" ry="24"/></g>
+      <g fill="#FFDDA8" opacity=".8"><ellipse cx="880" cy="96" rx="160" ry="26"/><ellipse cx="940" cy="80" rx="90" ry="30"/></g>
+      <g fill="#FFD9A0" opacity=".75"><ellipse cx="1430" cy="250" rx="120" ry="20"/><ellipse cx="1480" cy="238" rx="70" ry="24"/></g>
+      <g fill="#FFE9C6" opacity=".7"><ellipse cx="640" cy="250" rx="100" ry="16"/><ellipse cx="690" cy="240" rx="54" ry="18"/></g>
     </g>
-    <path d="M0 520 L120 478 L250 500 L400 458 L560 492 L720 466 L880 496 L1040 460 L1200 488 L1360 452 L1600 486 V560 H0Z" fill="url(#farG)"/>
+    <path d="M0 520 L120 482 L250 502 L400 464 L560 494 L720 470 L880 498 L1040 466 L1200 490 L1360 458 L1600 488 V560 H0Z" fill="url(#farG)" opacity=".9"/>
     <rect y="515" width="1600" height="385" fill="url(#seaG)"/>
+    <g class="glint" fill="url(#glintG)">
+      <rect x="1150" y="518" width="60" height="6" rx="3"/><rect x="1120" y="540" width="120" height="5" rx="2.5"/>
+      <rect x="1100" y="566" width="160" height="5" rx="2.5"/><rect x="1080" y="598" width="200" height="5" rx="2.5"/>
+      <rect x="1060" y="640" width="240" height="5" rx="2.5"/><rect x="1040" y="694" width="280" height="6" rx="3"/>
+    </g>
     <path d="M0 190 L60 178 L130 196 L200 226 L250 262 L292 318 L330 384 L372 452 L410 520 L452 588 L470 640 L0 660Z" fill="url(#cliffG)"/>
-    <path d="M0 190 L60 178 L130 196 L200 226 L250 262 L236 268 L180 240 L110 214 L50 204 L0 212Z" fill="#9fd07f"/>
-    <path d="M60 230 L120 300 M150 260 L220 380 M40 320 L130 450 M210 330 L300 470 M90 440 L180 580 M260 420 L350 560" stroke="rgba(60,80,76,.25)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M0 190 L60 178 L130 196 L200 226 L250 262 L236 268 L180 240 L110 214 L50 204 L0 212Z" fill="#B9B85F"/>
+    <path d="M60 230 L120 300 M150 260 L220 380 M40 320 L130 450 M210 330 L300 470 M90 440 L180 580 M260 420 L350 560" stroke="rgba(90,62,27,.22)" stroke-width="4" stroke-linecap="round"/>
     <path d="M1600 300 L1540 306 L1486 332 L1440 372 L1402 430 L1366 496 L1336 560 L1316 620 L1600 640Z" fill="url(#cliffG2)"/>
-    <path d="M1600 300 L1540 306 L1486 332 L1440 372 L1452 376 L1494 344 L1546 320 L1600 316Z" fill="#9fd07f"/>
-    <path d="M1520 360 L1460 470 M1570 400 L1500 540 M1450 470 L1400 580" stroke="rgba(60,80,76,.25)" stroke-width="4" stroke-linecap="round"/>
-    <g fill="#fff" opacity=".55"><ellipse cx="420" cy="640" rx="90" ry="10"/><ellipse cx="1340" cy="622" rx="80" ry="9"/></g>
-    <g class="waves" stroke="#fff" stroke-width="3" fill="none" opacity=".28">
+    <path d="M1600 300 L1540 306 L1486 332 L1440 372 L1452 376 L1494 344 L1546 320 L1600 316Z" fill="#B9B85F"/>
+    <path d="M1520 360 L1460 470 M1570 400 L1500 540 M1450 470 L1400 580" stroke="rgba(90,62,27,.22)" stroke-width="4" stroke-linecap="round"/>
+    <g fill="#FFF4DC" opacity=".55"><ellipse cx="420" cy="640" rx="90" ry="10"/><ellipse cx="1340" cy="622" rx="80" ry="9"/></g>
+    <g class="waves" stroke="#FFF1C1" stroke-width="3" fill="none" opacity=".3">
       <path d="M-200 600 q50 -14 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0"/>
       <path d="M-200 700 q50 -16 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0"/>
       <path d="M-200 820 q50 -18 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0"/>
     </g>
-    <g class="waves2" stroke="#fff" stroke-width="2" fill="none" opacity=".2">
+    <g class="waves2" stroke="#FFF1C1" stroke-width="2" fill="none" opacity=".22">
       <path d="M-200 650 q50 -10 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0"/>
       <path d="M-200 760 q50 -12 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0"/>
     </g>
@@ -389,17 +426,17 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
   <header>
     <div class="brand">
       <svg viewBox="0 0 40 40" aria-hidden="true">
-        <defs><linearGradient id="gLogo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82d6"/><stop offset="1" stop-color="#12325c"/></linearGradient></defs>
-        <rect width="40" height="40" rx="11" fill="url(#gLogo)" stroke="#f2c14e" stroke-width="2"/>
-        <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <defs><linearGradient id="gLogo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b7380"/><stop offset="1" stop-color="#123E46"/></linearGradient></defs>
+        <rect width="40" height="40" rx="11" fill="url(#gLogo)" stroke="#F2B230" stroke-width="2.5"/>
+        <g fill="none" stroke="#FFC845" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="20" cy="10.5" r="3"/><path d="M20 13.5V31"/><path d="M14 18h12"/><path d="M10 24c0 4.5 4.5 7 10 7s10-2.5 10-7"/><path d="M8 26l2-2.5 2.5 2"/><path d="M32 26l-2-2.5-2.5 2"/>
         </g>
       </svg>
-      <div><h1>Hải Chiến</h1><small>Battleship online</small></div>
+      <div><h1>Sea Battle</h1><small>Online · 2 players</small></div>
     </div>
     <div class="hdr-right">
       <div id="score" class="score hidden"></div>
-      <button id="gearBtn" class="gear" aria-label="Cài đặt" title="Cài đặt">
+      <button id="gearBtn" class="gear" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
@@ -408,33 +445,33 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
   <main id="screen-lobby">
     <div class="lobby">
       <div class="hero">
-        <p class="big-title">Đánh chìm hạm đội!</p>
-        <p>Tạo phòng, gửi mã cho bạn, rồi vào trận. Không cần tài khoản.</p>
+        <p class="big-title">Sink the Fleet!</p>
+        <p>Create a room, send the code to a friend and battle. No account needed.</p>
       </div>
       <section class="card">
-        <h2>Chỉ huy của bạn</h2>
-        <label class="field" style="display:block;margin:12px 0"><input id="nameInput" type="text" maxlength="16" placeholder="Tên của bạn" autocomplete="nickname"></label>
-        <div id="avaPick" class="ava-pick" role="radiogroup" aria-label="Chọn chân dung"></div>
-        <h3>Chế độ</h3>
+        <h2>Your Commander</h2>
+        <label class="field" style="display:block;margin:12px 0"><input id="nameInput" type="text" maxlength="16" placeholder="Your name" autocomplete="nickname"></label>
+        <div id="avaPick" class="ava-pick" role="radiogroup" aria-label="Choose a portrait"></div>
+        <h3>Mode</h3>
         <div id="modePick" class="opt-grid two" role="radiogroup"></div>
-        <h3>Bản đồ</h3>
+        <h3>Map</h3>
         <div id="mapPick" class="opt-grid three" role="radiogroup"></div>
-        <p class="host-note">Chế độ và bản đồ do người tạo phòng chọn.</p>
-        <div style="margin-top:14px"><button id="createBtn" class="btn primary big">Tạo phòng mới</button></div>
-        <div class="or">hoặc vào phòng có sẵn</div>
+        <p class="host-note">The room creator picks the mode and map.</p>
+        <div style="margin-top:14px"><button id="createBtn" class="btn primary big">Create Room</button></div>
+        <div class="or">or join a room</div>
         <div class="join-row">
-          <input id="codeInput" type="text" maxlength="6" placeholder="MÃ PHÒNG" autocomplete="off" spellcheck="false">
-          <button id="joinBtn" class="btn orange">Vào phòng</button>
+          <input id="codeInput" type="text" maxlength="6" placeholder="ROOM CODE" autocomplete="off" spellcheck="false">
+          <button id="joinBtn" class="btn orange">Join</button>
         </div>
         <p id="lobbyMsg" class="msg" role="status"></p>
       </section>
       <section class="card rules">
-        <h2>Luật chơi</h2>
+        <h2>How to Play</h2>
         <ul>
-          <li>Mỗi bên xếp 5 tàu (5, 4, 3, 3, 2 ô). Không đặt tàu lên đảo.</li>
-          <li>Hai bên thay phiên bắn. <b>Bắn thường trúng thì được bắn tiếp.</b></li>
-          <li><b>Chế độ Chỉ huy:</b> mỗi lượt +1 ⚡, mỗi phát trúng +1 ⚡. Dùng ⚡ cho Ra-đa, Bom chùm, Không kích. Dùng kỹ năng sẽ kết thúc lượt.</li>
-          <li>Ai đánh chìm toàn bộ hạm đội đối phương trước sẽ thắng.</li>
+          <li>Each side deploys 5 ships (5, 4, 3, 3 and 2 cells). Ships can't sit on islands.</li>
+          <li>Take turns firing. <b>A regular shot that hits lets you fire again.</b></li>
+          <li><b>Commander mode:</b> +1 ⚡ each turn and +1 ⚡ per hit. Spend ⚡ on Radar, Cluster Bomb and Airstrike. Using an ability ends your turn.</li>
+          <li>First to sink the whole enemy fleet wins.</li>
         </ul>
       </section>
     </div>
@@ -442,17 +479,17 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 
   <main id="screen-wait" class="hidden">
     <section class="card wait">
-      <p class="eyebrow">Mã phòng</p>
+      <p class="eyebrow">Room code</p>
       <div id="roomCode" class="code">------</div>
       <div id="waitTags" class="tags"></div>
-      <p class="muted small">Gửi mã hoặc link này cho bạn của bạn</p>
+      <p class="muted small">Send this code or link to your friend</p>
       <div class="share">
         <input id="shareLink" type="text" readonly>
-        <button id="copyBtn" class="btn primary">Sao chép</button>
+        <button id="copyBtn" class="btn primary">Copy</button>
       </div>
-      <p id="fileHint" class="hint hidden">Bạn đang mở file trên máy nên link chỉ dùng được trên máy này. Bạn bè hãy mở cùng file game và nhập mã phòng ở trên.</p>
-      <div class="waiting"><span class="pulse"></span> Đang chờ đối thủ vào phòng…</div>
-      <button id="cancelBtn" class="btn ghost">Huỷ phòng</button>
+      <p id="fileHint" class="hint hidden">You opened the game as a local file, so this link only works on this computer. Your friend should open the same game file and enter the room code above.</p>
+      <div class="waiting"><span class="pulse"></span> Waiting for an opponent…</div>
+      <button id="cancelBtn" class="btn ghost">Cancel Room</button>
     </section>
   </main>
 
@@ -466,15 +503,15 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
       <div id="enemyFleet" class="enemy-fleet"></div>
       <div id="cmdOpp" class="pennant opp"></div>
       <section id="dock" class="card dock">
-        <h2>Xếp hạm đội</h2>
-        <p class="muted small" style="margin:6px 0 0">Kéo tàu thả vào bàn cờ. Chạm vào tàu đã đặt để xoay, hoặc nhấn <kbd>R</kbd> khi đang kéo.</p>
+        <h2>Deploy Your Fleet</h2>
+        <p class="muted small" style="margin:6px 0 0">Drag ships onto the board. Tap a placed ship to rotate it, or press <kbd>R</kbd> while dragging.</p>
         <div id="dockShips" class="dock-ships"></div>
         <div class="dock-actions">
           <button id="rotateBtn" class="btn sm"></button>
-          <button id="randomBtn" class="btn sm">🎲 Ngẫu nhiên</button>
-          <button id="clearBtn" class="btn sm ghost">Xoá hết</button>
+          <button id="randomBtn" class="btn sm">🎲 Random</button>
+          <button id="clearBtn" class="btn sm ghost">Clear</button>
         </div>
-        <button id="readyBtn" class="btn primary big">Sẵn sàng</button>
+        <button id="readyBtn" class="btn primary big">Ready</button>
       </section>
     </div>
     <div id="boardStore" class="hidden">
@@ -487,16 +524,17 @@ kbd{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--li
 <div id="overModal" class="modal hidden"><div class="card" id="overCard"></div></div>
 <div id="setModal" class="modal hidden">
   <div class="card">
-    <h2>Cài đặt</h2>
-    <div class="set-row"><span>🎵 Nhạc nền</span><button id="musicSw" class="switch" aria-label="Nhạc nền"></button></div>
-    <div class="set-row"><span>🔊 Hiệu ứng âm thanh</span><button id="sfxSw" class="switch" aria-label="Hiệu ứng âm thanh"></button></div>
+    <h2>Settings</h2>
+    <div class="set-row"><span>🎵 Music</span><button id="musicSw" class="switch" aria-label="Music"></button></div>
+    <div class="set-row"><span>🔊 Sound effects</span><button id="sfxSw" class="switch" aria-label="Sound effects"></button></div>
     <div class="over-btns" style="margin-top:16px">
-      <button id="leaveBtn" class="btn orange hidden">Rời phòng</button>
-      <button id="closeSet" class="btn primary">Đóng</button>
+      <button id="leaveBtn" class="btn orange hidden">Leave Room</button>
+      <button id="closeSet" class="btn primary">Close</button>
     </div>
-    <p class="credits">Âm thanh CC0: Thimras, Kenney, ezwa, yd, beardalaxy (OpenGameArt · kenney.nl)</p>
+    <p class="credits">CC0 audio: Thimras, Kenney, ezwa, yd, beardalaxy (OpenGameArt · kenney.nl)</p>
   </div>
 </div>
+<div id="turnBanner" class="turn-banner hidden" role="status" aria-live="assertive"><div class="rb"><b></b><span></span><i class="shine"></i></div></div>
 <div id="toasts" aria-live="polite"></div>
 
 <script>
@@ -510,11 +548,11 @@ const PROTO = 3;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const FLIGHT = 620; // ms a shell takes to land
 const SHIPS = [
-  { id: 'carrier',    name: 'Tàu sân bay',    len: 5 },
-  { id: 'battleship', name: 'Thiết giáp hạm', len: 4 },
-  { id: 'cruiser',    name: 'Tuần dương hạm', len: 3 },
-  { id: 'submarine',  name: 'Tàu ngầm',       len: 3 },
-  { id: 'destroyer',  name: 'Khu trục hạm',   len: 2 },
+  { id: 'carrier',    name: 'Carrier',    len: 5 },
+  { id: 'battleship', name: 'Battleship', len: 4 },
+  { id: 'cruiser',    name: 'Cruiser',    len: 3 },
+  { id: 'submarine',  name: 'Submarine',  len: 3 },
+  { id: 'destroyer',  name: 'Destroyer',  len: 2 },
 ];
 const BY_ID = Object.fromEntries(SHIPS.map(s => [s.id, s]));
 const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -535,15 +573,15 @@ const PLANE_SVG = '<svg viewBox="-50 -50 100 100"><g fill="rgba(15,30,45,.42)"><
 
 /* ================= Maps ================= */
 const MAPS = {
-  open:    { name: 'Biển khơi', desc: 'Lưới 10×10 trống', land: [] },
-  islands: { name: 'Quần đảo',  desc: 'Đảo nhỏ rải rác chắn đường',
+  open:    { name: 'Open Sea', desc: 'Clear 10×10 waters', land: [] },
+  islands: { name: 'Archipelago',  desc: 'Scattered islands in the way',
     land: [[1, 6], [2, 2], [2, 3], [3, 2], [4, 7], [5, 4], [5, 5], [7, 1], [7, 7], [7, 8], [8, 7]] },
-  fjord:   { name: 'Vịnh hẹp',  desc: 'Bờ biển khúc khuỷu',
+  fjord:   { name: 'Fjord',  desc: 'A jagged coastline',
     land: [[0, 6], [0, 7], [0, 8], [0, 9], [1, 7], [1, 8], [1, 9], [2, 9], [6, 9], [7, 8], [7, 9], [8, 8], [8, 9], [9, 7], [9, 8], [9, 9], [9, 0], [8, 0], [9, 1]] },
 };
 const MODES = {
-  classic: { name: 'Cổ điển', desc: 'Luật gốc. Bắn trúng được bắn tiếp.' },
-  command: { name: 'Chỉ huy', desc: 'Tích ⚡ để dùng Ra-đa, Bom chùm, Không kích.' },
+  classic: { name: 'Classic', desc: 'Original rules. Hit and fire again.' },
+  command: { name: 'Commander', desc: 'Build up ⚡ for Radar, Cluster Bomb and Airstrike.' },
 };
 let LAND = new Set();
 const isLand = (r, c) => LAND.has(r * N + c);
@@ -551,10 +589,10 @@ function applyMap() { LAND = new Set(MAPS[S.map].land.map(([r, c]) => r * N + c)
 
 /* ================= Abilities ================= */
 const ABIL = {
-  shot:    { name: 'Bắn thường', cost: 0, dur: FLIGHT, tip: 'bắn 1 ô. Trúng thì được bắn tiếp.' },
-  radar:   { name: 'Ra-đa',      cost: 3, dur: 800, tip: 'quét vùng 3×3, đánh dấu các ô có tàu địch. Kết thúc lượt.' },
-  cluster: { name: 'Bom chùm',   cost: 5, dur: FLIGHT + 4 * 70, tip: 'bắn 5 ô hình chữ thập. Kết thúc lượt.' },
-  air:     { name: 'Không kích', cost: 8, dur: 950, tip: 'bắn toàn bộ một hàng hoặc một cột. Kết thúc lượt.' },
+  shot:    { name: 'Fire', cost: 0, dur: FLIGHT, tip: 'shoot one cell. Hit and you fire again.' },
+  radar:   { name: 'Radar',      cost: 3, dur: 800, tip: 'scan a 3×3 area and mark cells with enemy ships. Ends your turn.' },
+  cluster: { name: 'Cluster Bomb',   cost: 5, dur: FLIGHT + 4 * 70, tip: 'hit 5 cells in a plus shape. Ends your turn.' },
+  air:     { name: 'Airstrike', cost: 8, dur: 950, tip: 'hit every cell in a row or column. Ends your turn.' },
 };
 const MAX_ENERGY = 10;
 const ABIL_ICON = {
@@ -687,7 +725,7 @@ const S = {
   phase: 'lobby',            // lobby | wait | placing | playing | over
   role: null,                // host | guest
   code: '',
-  myName: '', oppName: 'Đối thủ',
+  myName: '', oppName: 'Enemy',
   avatar: Math.min(AVA.length - 1, Math.max(0, parseInt(store.get('hc-ava', '0'), 10) || 0)), oppAvatar: 1,
   mode: pick('hc-mode', MODES, 'classic'),
   map: pick('hc-map', MAPS, 'open'),
@@ -1154,13 +1192,13 @@ function destroyPeer() {
 }
 function newPeer(id) {
   if (typeof Peer === 'undefined') {
-    lobbyMsg('Không tải được thư viện kết nối. Kiểm tra mạng rồi tải lại trang.', 'err');
+    lobbyMsg('Could not load the connection library. Check your network and reload.', 'err');
     return null;
   }
   return id ? new Peer(id, { debug: 0 }) : new Peer({ debug: 0 });
 }
 function readName() {
-  const n = cleanName($('nameInput').value) || 'Thuyền trưởng';
+  const n = cleanName($('nameInput').value) || 'Captain';
   S.myName = n; store.set('hc-name', n);
   return n;
 }
@@ -1172,7 +1210,7 @@ function createRoom() {
   destroyPeer();
   S.role = 'host';
   applyMap();
-  setBusy(true); lobbyMsg('Đang tạo phòng…');
+  setBusy(true); lobbyMsg('Creating room…');
   const code = randCode();
   const p = newPeer(PEER_PREFIX + code);
   if (!p) { setBusy(false); return; }
@@ -1201,10 +1239,10 @@ function createRoom() {
 function joinRoom() {
   readName();
   const code = $('codeInput').value.trim().toUpperCase();
-  if (!/^[A-Z0-9]{6}$/.test(code)) { lobbyMsg('Mã phòng gồm 6 ký tự.', 'err'); return; }
+  if (!/^[A-Z0-9]{6}$/.test(code)) { lobbyMsg('Room codes have 6 characters.', 'err'); return; }
   destroyPeer();
   S.role = 'guest'; S.code = code;
-  setBusy(true); lobbyMsg('Đang kết nối tới phòng ' + code + '…');
+  setBusy(true); lobbyMsg('Connecting to room ' + code + '…');
   const p = newPeer();
   if (!p) { setBusy(false); return; }
   peer = p;
@@ -1213,21 +1251,21 @@ function joinRoom() {
   joinTimer = setTimeout(() => {
     if (peer === p && !(conn && conn.open)) {
       destroyPeer(); setBusy(false);
-      lobbyMsg('Hết thời gian kết nối. Kiểm tra lại mã phòng hoặc thử mạng khác.', 'err');
+      lobbyMsg('Connection timed out. Check the room code or try another network.', 'err');
     }
   }, 20000);
 }
 
 function handlePeerError(e) {
   const msgs = {
-    'peer-unavailable': 'Không tìm thấy phòng này. Kiểm tra lại mã.',
-    'network': 'Mất kết nối tới máy chủ trung gian. Kiểm tra mạng.',
-    'server-error': 'Máy chủ kết nối đang lỗi, thử lại sau ít phút.',
-    'socket-error': 'Lỗi kết nối mạng.',
-    'browser-incompatible': 'Trình duyệt không hỗ trợ WebRTC.',
-    'webrtc': 'Không thiết lập được kết nối trực tiếp (mạng có thể chặn WebRTC).',
+    'peer-unavailable': 'Room not found. Check the code.',
+    'network': 'Lost connection to the signaling server. Check your network.',
+    'server-error': 'The connection server is having problems. Try again in a few minutes.',
+    'socket-error': 'Network connection error.',
+    'browser-incompatible': 'This browser does not support WebRTC.',
+    'webrtc': 'Could not open a direct connection (your network may block WebRTC).',
   };
-  const text = msgs[e.type] || 'Lỗi kết nối: ' + (e.type || e.message || 'không rõ');
+  const text = msgs[e.type] || 'Connection error: ' + (e.type || e.message || 'unknown');
   if (S.phase === 'lobby' || S.phase === 'wait') {
     destroyPeer(); setBusy(false);
     S.phase = 'lobby'; render();
@@ -1258,13 +1296,13 @@ function onOppLeft() {
   conn = null;
   clearTimeout(viewTimer);
   if (S.role === 'host' && peer && !peer.destroyed) {
-    toast(name + ' đã rời phòng. Đang chờ người mới…');
-    S.phase = 'wait'; S.oppName = 'Đối thủ';
+    toast(name + ' left the room. Waiting for a new opponent…');
+    S.phase = 'wait'; S.oppName = 'Enemy';
     render();
   } else {
     destroyPeer();
     S.phase = 'lobby'; render();
-    lobbyMsg(name + ' đã rời phòng.', 'err');
+    lobbyMsg(name + ' left the room.', 'err');
   }
 }
 
@@ -1281,19 +1319,19 @@ function onMsg(m) {
   if (!m || typeof m !== 'object') return;
   switch (m.t) {
     case 'hello':
-      S.oppName = cleanName(m.name) || 'Đối thủ';
+      S.oppName = cleanName(m.name) || 'Enemy';
       S.oppAvatar = Number.isInteger(m.avatar) && AVA[m.avatar] ? m.avatar : 0;
-      if (m.v !== PROTO) toast('Đối thủ đang dùng phiên bản game khác. Hai bên hãy tải lại trang.', 'bad');
+      if (m.v !== PROTO) toast('Your opponent is on a different game version. Both of you should reload the page.', 'bad');
       if (S.role === 'guest' && MODES[m.mode] && MAPS[m.map]) {
         S.mode = m.mode; S.map = m.map; applyMap();
         if (!fleetFits()) S.fleet = {};
       }
-      toast(S.oppName + ' đã vào phòng', 'good');
+      toast(S.oppName + ' joined the room', 'good');
       render(); break;
     case 'full':
       destroyPeer(); setBusy(false);
       S.phase = 'lobby'; render();
-      lobbyMsg('Phòng đã đủ 2 người.', 'err'); break;
+      lobbyMsg('This room is already full.', 'err'); break;
     case 'bye':
       onOppLeft(); break;
     case 'ready':
@@ -1312,7 +1350,7 @@ function onMsg(m) {
       else if (S.phase === 'over') {
         S.rematchOpp = true;
         if (S.rematchMe) newRound();
-        else { toast(S.oppName + ' muốn đấu lại!'); render(); }
+        else { toast(S.oppName + ' wants a rematch!'); render(); }
       }
       break;
   }
@@ -1342,7 +1380,7 @@ function startMatch() {
 function newRound() {
   S.round++;
   resetRound();
-  toast('Ván ' + S.round + ' — xếp lại hạm đội nhé!');
+  toast('Round ' + S.round + ' — deploy your fleet!');
   render();
 }
 function setView(v, delay) {
@@ -1351,7 +1389,22 @@ function setView(v, delay) {
   viewTimer = setTimeout(() => { if (S.phase === 'playing') { S.view = v; render(); } }, delay);
 }
 // Both peers run this for every turn change, so energy stays in sync without extra messages.
+const TURN_LINES = { mine: ['YOUR TURN', 'Fire at will!'], enemy: ['ENEMY TURN', 'Brace for impact!'] };
+let turnTimer = null;
+function announceTurn(mine) {
+  const el = $('turnBanner');
+  const [title, sub] = TURN_LINES[mine ? 'mine' : 'enemy'];
+  el.querySelector('b').textContent = title;
+  el.querySelector('span').textContent = mine ? sub : S.oppName + ' is aiming…';
+  el.className = 'turn-banner ' + (mine ? 'mine' : 'enemy');
+  void el.offsetWidth; // restart the animation
+  el.classList.add('show');
+  clearTimeout(turnTimer);
+  turnTimer = setTimeout(() => el.classList.add('hidden'), 1450);
+  if (mine) Snd.play('bell', { vol: .55 }); else Snd.play('ready', { vol: .7, rate: .6 });
+}
 function beginTurn(mine, delay = 800) {
+  if (S.myTurn !== mine || delay === 0) announceTurn(mine);
   S.myTurn = mine;
   S.lastMineHit = false; S.lastTheirsHit = false;
   S.ability = null; S.armed = null;
@@ -1367,8 +1420,7 @@ function maybeStart() {
   // Host fires first in odd rounds, guest in even rounds.
   const first = (S.round % 2 === 1) === (S.role === 'host');
   beginTurn(first, 0);
-  Snd.play('bell', { vol: .5 });
-  toast(first ? 'Bạn bắn trước!' : S.oppName + ' bắn trước.');
+  
 }
 function setReady() {
   if (S.phase !== 'placing' || S.myReady || !allPlaced()) return;
@@ -1462,7 +1514,7 @@ function onShot(m) {
     impacts('mine', results, kind);
     playImpactSounds(results, sunk.length, .85);
     sunk.forEach(s => sinkChain('mine', s, s.id));
-    if (sunk.length) { shake(2); toast(sunk.map(s => BY_ID[s.id].name).join(', ') + ' của bạn đã bị đánh chìm!', 'bad'); }
+    if (sunk.length) { shake(2); toast('Your ' + sunk.map(s => BY_ID[s.id].name).join(', ') + (sunk.length > 1 ? ' were' : ' was') + ' sunk!', 'bad'); }
     else if (anyHit) shake(1);
   }, ab.dur);
 }
@@ -1499,7 +1551,7 @@ function onResult(m) {
     impacts('enemy', results, kind);
     playImpactSounds(results, sunk.length);
     sunk.forEach(s => sinkChain('enemy', s, s.id));
-    if (sunk.length) { shake(2); toast('Bạn đã đánh chìm ' + sunk.map(s => BY_ID[s.id].name).join(', ') + '!', 'good'); }
+    if (sunk.length) { shake(2); toast('You sank the enemy ' + sunk.map(s => BY_ID[s.id].name).join(', ') + '!', 'good'); }
   }, delay);
 }
 
@@ -1519,7 +1571,7 @@ function onScan(m) {
     render();
     const p = FX.center(cellEl('mine', r, c));
     FX.radar(p.x, p.y, p.w); radarPing(.5); flashScan('mine', area);
-    toast(S.oppName + ' đã quét ra-đa quanh ô ' + cellName(r, c));
+    toast(S.oppName + ' scanned around ' + cellName(r, c) + ' with radar');
   }, ABIL.radar.dur);
 }
 
@@ -1535,7 +1587,7 @@ function onScanResult(m) {
     found.forEach(([r, c]) => { if (!S.myShots[r][c]) S.scanned.add(r * N + c); });
     beginTurn(false);
     render();
-    toast(found.length ? `Ra-đa phát hiện ${found.length} ô có tàu địch!` : 'Ra-đa không phát hiện tàu nào.', found.length ? 'good' : '');
+    toast(found.length ? `Radar found ${found.length} enemy ship cell${found.length > 1 ? 's' : ''}!` : 'Radar found nothing.', found.length ? 'good' : '');
   }, delay);
 }
 
@@ -1572,11 +1624,11 @@ function cellStyles() {
       };
     }
     // Orange outline traces the playable sea, like a coastline.
-    const sh = ['inset 0 0 0 .5px var(--orange-l)'];
-    if (!water(r - 1, c)) sh.push('inset 0 2px 0 var(--orange)');
-    if (!water(r + 1, c)) sh.push('inset 0 -2px 0 var(--orange)');
-    if (!water(r, c - 1)) sh.push('inset 2px 0 0 var(--orange)');
-    if (!water(r, c + 1)) sh.push('inset -2px 0 0 var(--orange)');
+    const sh = ['inset 0 0 0 .5px var(--grid)'];
+    if (!water(r - 1, c)) sh.push('inset 0 2px 0 var(--coast)');
+    if (!water(r + 1, c)) sh.push('inset 0 -2px 0 var(--coast)');
+    if (!water(r, c - 1)) sh.push('inset 2px 0 0 var(--coast)');
+    if (!water(r, c + 1)) sh.push('inset -2px 0 0 var(--coast)');
     return { land: false, style: 'box-shadow:' + sh.join(',') };
   }));
   return CELL_STYLE;
@@ -1645,7 +1697,7 @@ function pennantHTML(me) {
   let stat, sub;
   if (S.mode === 'command' && S.phase !== 'placing') {
     stat = BOLT + (me ? S.energy.me : S.energy.opp);
-    sub = `Tàu còn ${left}/5`;
+    sub = `Ships ${left}/5`;
   } else {
     stat = `<span style="font-size:.62em">🚢</span>${left}`;
     sub = MODES[S.mode].name + ' · ' + MAPS[S.map].name;
@@ -1653,15 +1705,15 @@ function pennantHTML(me) {
   let badge = '';
   if (S.phase === 'placing') {
     const ok = me ? S.myReady : S.oppReady;
-    badge = `<div class="ready-badge${ok ? ' ok' : ''}">${ok ? '✓ Sẵn sàng' : 'Đang xếp tàu…'}</div>`;
+    badge = `<div class="ready-badge${ok ? ' ok' : ''}">${ok ? '✓ Ready' : 'Deploying…'}</div>`;
   }
   return `<div class="in"><div class="cmd-name">${esc(name)}</div><div class="cmd-ava">${avatarSVG(ava)}</div><div class="cmd-stat">${stat}</div><div class="cmd-sub">${sub}</div>${badge}</div>`;
 }
 function dockHTML() {
   const left = SHIPS.filter(s => !S.fleet[s.id]);
-  if (!left.length) return '<div class="dock-empty">✓ Đã xếp xong hạm đội</div>';
+  if (!left.length) return '<div class="dock-empty">✓ Fleet deployed</div>';
   return left.map(s =>
-    `<div class="dock-item" data-id="${s.id}"><div class="ship h" style="width:${s.len * 28}px">${shipSVG(s.id, true)}</div><span>${s.name} · ${s.len} ô</span></div>`
+    `<div class="dock-item" data-id="${s.id}"><div class="ship h" style="width:${s.len * 28}px">${shipSVG(s.id, true)}</div><span>${s.name} · ${s.len}</span></div>`
   ).join('');
 }
 
@@ -1693,7 +1745,7 @@ function renderWait() {
 function renderAbilities() {
   const el = $('abilities');
   if (S.mode !== 'command' || S.phase === 'placing') {
-    el.innerHTML = `<div class="mode-info" style="grid-column:1/-1"><b>${MODES[S.mode].name}</b>${MAPS[S.map].name} · Ván ${S.round}<br><span class="muted">${MODES[S.mode].desc}</span></div>`;
+    el.innerHTML = `<div class="mode-info" style="grid-column:1/-1"><b>${MODES[S.mode].name}</b>${MAPS[S.map].name} · Round ${S.round}<br><span class="muted">${MODES[S.mode].desc}</span></div>`;
     return;
   }
   const can = S.phase === 'playing' && S.myTurn && !S.pending;
@@ -1701,7 +1753,7 @@ function renderAbilities() {
     const a = ABIL[k];
     const dis = !can || S.energy.me < a.cost;
     const sel = can && (S.ability || 'shot') === k;
-    return `<button class="abil${sel ? ' sel' : ''}" data-k="${k}" ${dis ? 'disabled' : ''} title="${a.name}" aria-label="${a.name}${a.cost ? ', ' + a.cost + ' năng lượng' : ''}" aria-pressed="${sel}"><span class="dia"></span><span class="ico">${ABIL_ICON[k]}</span><span class="cost">⚡${a.cost}</span></button>`;
+    return `<button class="abil${sel ? ' sel' : ''}" data-k="${k}" ${dis ? 'disabled' : ''} title="${a.name}" aria-label="${a.name}${a.cost ? ', ' + a.cost + ' energy' : ''}" aria-pressed="${sel}"><span class="dia"></span><span class="ico">${ABIL_ICON[k]}</span><span class="cost">⚡${a.cost}</span></button>`;
   }).join('');
 }
 
@@ -1709,27 +1761,27 @@ function renderTip() {
   const opp = esc(S.oppName);
   let t = '', btns = '';
   if (S.phase === 'placing') {
-    t = S.myReady ? `Đã sẵn sàng. Đang chờ <b>${opp}</b> xếp tàu…`
-      : allPlaced() ? 'Hạm đội đã xếp xong. Bấm <b>Sẵn sàng</b> để vào trận.'
-      : 'Kéo thả tàu vào bàn cờ hoặc bấm <b>Ngẫu nhiên</b>. Không đặt tàu lên đảo.';
+    t = S.myReady ? `Ready. Waiting for <b>${opp}</b> to deploy…`
+      : allPlaced() ? 'Fleet deployed. Press <b>Ready</b> to start the battle.'
+      : 'Drag ships onto the board or press <b>Random</b>. Ships can\'t sit on islands.';
   } else if (S.phase === 'playing') {
     if (S.myTurn) {
-      if (S.pending) t = 'Đạn đang bay…';
-      else if (S.view !== 'enemy') t = 'Chuẩn bị khai hoả…';
+      if (S.pending) t = 'Shells incoming…';
+      else if (S.view !== 'enemy') t = 'Get ready to fire…';
       else {
         const k = S.ability || 'shot', a = ABIL[k];
-        t = (S.lastMineHit && k === 'shot' ? '<b>Trúng rồi!</b> Bạn được bắn tiếp. ' : '') +
-          (S.mode === 'command' || k !== 'shot' ? `<b>${a.name}${a.cost ? ' (⚡' + a.cost + ')' : ''}:</b> ${a.tip}` : (S.lastMineHit ? '' : 'Chọn một ô trên vùng biển đối thủ để bắn.'));
-        if (k !== 'shot' && lastPtr !== 'mouse') t += ' Chạm 2 lần để xác nhận.';
-        if (k === 'air') btns += `<button class="btn sm sw" data-act="dir">${S.airDir === 'row' ? '↔ Hàng' : '↕ Cột'}</button>`;
-        if (S.ability) btns += '<button class="x" data-act="cancel" aria-label="Huỷ kỹ năng">✕</button>';
+        t = (S.lastMineHit && k === 'shot' ? '<b>Hit!</b> Fire again. ' : '') +
+          (S.mode === 'command' || k !== 'shot' ? `<b>${a.name}${a.cost ? ' (⚡' + a.cost + ')' : ''}:</b> ${a.tip}` : (S.lastMineHit ? '' : 'Pick a cell in enemy waters to fire.'));
+        if (k !== 'shot' && lastPtr !== 'mouse') t += ' Tap twice to confirm.';
+        if (k === 'air') btns += `<button class="btn sm sw" data-act="dir">${S.airDir === 'row' ? '↔ Row' : '↕ Column'}</button>`;
+        if (S.ability) btns += '<button class="x" data-act="cancel" aria-label="Cancel ability">✕</button>';
       }
     } else {
-      t = S.lastTheirsHit ? `<b>${opp}</b> vừa bắn trúng và được bắn tiếp…` : `Đang chờ <b>${opp}</b> ra đòn…`;
+      t = S.lastTheirsHit ? `<b>${opp}</b> scored a hit and fires again…` : `Waiting for <b>${opp}</b> to fire…`;
     }
   } else {
-    t = (S.winner === 'me' ? '<b>Chiến thắng!</b> ' : '<b>Thất bại.</b> ') + (S.rematchOpp && !S.rematchMe ? `${opp} muốn đấu lại.` : 'Xem lại bàn cờ của hai bên.');
-    btns = `<button class="btn sm" data-act="result">Kết quả</button><button class="btn sm orange" data-act="rematch" ${S.rematchMe ? 'disabled' : ''}>${S.rematchMe ? 'Đang chờ…' : 'Đấu lại'}</button>`;
+    t = (S.winner === 'me' ? '<b>Victory!</b> ' : '<b>Defeat.</b> ') + (S.rematchOpp && !S.rematchMe ? `${opp} wants a rematch.` : 'Review both boards.');
+    btns = `<button class="btn sm" data-act="result">Results</button><button class="btn sm orange" data-act="rematch" ${S.rematchMe ? 'disabled' : ''}>${S.rematchMe ? 'Waiting…' : 'Rematch'}</button>`;
   }
   $('tip').innerHTML = `<div class="t">${t}</div>${btns}`;
 }
@@ -1743,18 +1795,18 @@ function renderOver() {
   const acc = S.stats.shots ? Math.round(S.stats.hits / S.stats.shots * 100) : 0;
   $('overCard').innerHTML = `
     <div class="over-ava">${avatarSVG(won ? S.avatar : S.oppAvatar)}</div>
-    <div class="over-title ${won ? 'win' : 'lose'}">${won ? '🏆 Chiến thắng!' : 'Thất bại'}</div>
-    <p class="muted">${won ? 'Bạn đã đánh chìm toàn bộ hạm đội của ' + opp + '.' : opp + ' đã đánh chìm toàn bộ hạm đội của bạn.'}</p>
+    <div class="over-title ${won ? 'win' : 'lose'}">${won ? '🏆 Victory!' : 'Defeat'}</div>
+    <p class="muted">${won ? 'You sank ' + opp + '\'s entire fleet.' : opp + ' sank your entire fleet.'}</p>
     <div class="over-stats">
-      <div><b>${S.stats.shots}</b><span>Ô đã bắn</span></div>
-      <div><b>${acc}%</b><span>Chính xác</span></div>
-      <div><b>${S.score.me} – ${S.score.opp}</b><span>Tỉ số</span></div>
+      <div><b>${S.stats.shots}</b><span>Cells fired</span></div>
+      <div><b>${acc}%</b><span>Accuracy</span></div>
+      <div><b>${S.score.me} – ${S.score.opp}</b><span>Score</span></div>
     </div>
     <div class="over-btns">
-      <button class="btn ghost" data-act="board">Xem bàn cờ</button>
-      <button class="btn primary" data-act="rematch" ${S.rematchMe ? 'disabled' : ''}>${S.rematchMe ? 'Đang chờ ' + opp + '…' : 'Đấu lại'}</button>
+      <button class="btn ghost" data-act="board">View Boards</button>
+      <button class="btn primary" data-act="rematch" ${S.rematchMe ? 'disabled' : ''}>${S.rematchMe ? 'Waiting for ' + opp + '…' : 'Rematch'}</button>
     </div>
-    ${S.rematchOpp && !S.rematchMe ? '<p class="small" style="margin:10px 0 0">' + opp + ' muốn đấu lại</p>' : ''}`;
+    ${S.rematchOpp && !S.rematchMe ? '<p class="small" style="margin:10px 0 0">' + opp + ' wants a rematch</p>' : ''}`;
 }
 
 function renderGame() {
@@ -1776,27 +1828,27 @@ function renderGame() {
   else if (mini.parentNode !== $('slotMini')) $('slotMini').appendChild(mini);
 
   const bt = $('bigTitle');
-  if (placing) bt.textContent = 'Xếp hạm đội của bạn';
-  else if (big === be) bt.textContent = S.phase === 'over' ? 'Hạm đội của ' + opp : S.myTurn ? 'Lượt của bạn' : 'Vùng biển của ' + opp;
-  else bt.textContent = S.myTurn ? 'Hạm đội của bạn' : 'Lượt của ' + opp;
+  if (placing) bt.textContent = 'Deploy your fleet';
+  else if (big === be) bt.textContent = S.phase === 'over' ? opp + '\'s fleet' : S.myTurn ? 'Your turn' : opp + '\'s waters';
+  else bt.textContent = S.myTurn ? 'Your fleet' : opp + '\'s turn';
   bt.classList.toggle('me', !placing && big === bm && !S.myTurn);
-  $('miniTitle').textContent = mini === bm ? 'Hạm đội của bạn' : 'Vùng biển ' + opp;
+  $('miniTitle').textContent = mini === bm ? 'Your fleet' : opp + '\'s waters';
 
   renderAbilities();
   renderTip();
-  $('enemyFleet').innerHTML = '<div class="ttl">Tàu địch</div>' + SHIPS.map(s => {
+  $('enemyFleet').innerHTML = '<div class="ttl">Enemy fleet</div>' + SHIPS.map(s => {
     const sunk = S.enemySunk.some(e => e.id === s.id);
     return `<div class="ef-row${sunk ? ' sunk' : ''}" title="${s.name}"><div class="ship v" style="--n:${s.len}">${shipSVG(s.id, false)}</div><span>${s.name}</span></div>`;
   }).join('');
 
   $('dock').classList.toggle('hidden', !placing);
   if (placing) {
-    $('dockShips').innerHTML = S.myReady ? '<div class="dock-empty">✓ Đã khoá hạm đội</div>' : dockHTML();
-    $('rotateBtn').textContent = '↻ ' + (S.dockHoriz ? 'Ngang' : 'Dọc');
+    $('dockShips').innerHTML = S.myReady ? '<div class="dock-empty">✓ Fleet locked in</div>' : dockHTML();
+    $('rotateBtn').textContent = '↻ ' + (S.dockHoriz ? 'Horizontal' : 'Vertical');
     ['rotateBtn', 'randomBtn', 'clearBtn'].forEach(id => { $(id).disabled = S.myReady; });
     const rb = $('readyBtn');
     rb.disabled = S.myReady || !allPlaced();
-    rb.textContent = S.myReady ? 'Đã sẵn sàng ✓' : 'Sẵn sàng';
+    rb.textContent = S.myReady ? 'Ready ✓' : 'Ready';
   }
   renderOver();
   S.freshMine.clear(); S.freshTheirs.clear(); S.sinking.clear(); S.justPlaced = null;
@@ -1928,7 +1980,7 @@ function onDragEnd() {
       // Tap on a placed ship: rotate it in place.
       const rp = { ...d.from, horiz: !d.from.horiz };
       if (canPlace(S.fleet, d.id, rp, false)) { S.fleet[d.id] = rp; Snd.play('rotate'); placeFx(d.id); }
-      else { d.el.classList.remove('shake'); void d.el.offsetWidth; d.el.classList.add('shake'); toast('Không đủ chỗ để xoay tàu này'); }
+      else { d.el.classList.remove('shake'); void d.el.offsetWidth; d.el.classList.add('shake'); toast('Not enough room to rotate this ship'); }
       return;
     }
     // Tap on a dock ship: drop it somewhere free.
@@ -1953,7 +2005,7 @@ function onDragCancel() {
 /* ================= Lobby pickers & settings ================= */
 function renderLobbyPickers() {
   $('avaPick').innerHTML = AVA.map((_, i) =>
-    `<button class="${i === S.avatar ? 'sel' : ''}" data-i="${i}" role="radio" aria-checked="${i === S.avatar}" aria-label="Chân dung ${i + 1}">${avatarSVG(i)}</button>`).join('');
+    `<button class="${i === S.avatar ? 'sel' : ''}" data-i="${i}" role="radio" aria-checked="${i === S.avatar}" aria-label="Portrait ${i + 1}">${avatarSVG(i)}</button>`).join('');
   $('modePick').innerHTML = Object.entries(MODES).map(([k, m]) =>
     `<button class="opt${k === S.mode ? ' sel' : ''}" data-mode="${k}" role="radio" aria-checked="${k === S.mode}"><b>${m.name}</b><span>${m.desc}</span></button>`).join('');
   $('mapPick').innerHTML = Object.entries(MAPS).map(([k, m]) => {
@@ -1993,7 +2045,7 @@ $('mapPick').addEventListener('click', e => {
 $('cancelBtn').addEventListener('click', () => { destroyPeer(); S.phase = 'lobby'; render(); });
 $('copyBtn').addEventListener('click', () => {
   const input = $('shareLink');
-  const done = () => toast('Đã sao chép link phòng', 'good');
+  const done = () => toast('Room link copied', 'good');
   Snd.play('click');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(input.value).then(done, () => { input.select(); });
@@ -2090,7 +2142,7 @@ $('bgShips').innerHTML =
 const roomParam = new URLSearchParams(location.search).get('room');
 if (roomParam && /^[A-Za-z0-9]{6}$/.test(roomParam)) {
   $('codeInput').value = roomParam.toUpperCase();
-  lobbyMsg('Bạn được mời vào phòng ' + roomParam.toUpperCase() + '. Nhập tên rồi bấm “Vào phòng”.');
+  lobbyMsg('You were invited to room ' + roomParam.toUpperCase() + '. Enter your name and press Join.');
 }
 render();
 })();
