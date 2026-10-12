@@ -99,8 +99,8 @@ Host đóng tab thì phòng biến mất. Lần sau cần tạo phòng mới.
 
 | Vấn đề | Cách xử lý |
 |---|---|
-| "Room not found" | Kiểm tra lại mã; host phải còn mở tab. |
-| Kết nối mãi không được / "Connection timed out" | Một số mạng (wifi công ty, trường học, vài mạng 4G) chặn kết nối WebRTC trực tiếp. Thử đổi mạng khác, ví dụ phát wifi từ điện thoại. |
+| "Room not found" | Kiểm tra lại mã; host phải còn mở tab. Trên điện thoại, host có thể chuyển sang app khác (Zalo, Messenger…) để gửi link, miễn là quay lại tab game. |
+| "Could not reach the game servers" | Mạng đang chặn hoặc mất kết nối Internet. Thử đổi mạng (wifi ↔ 4G) rồi tải lại trang. |
 | Báo "different game version" | Cả hai tải lại trang (`Cmd/Ctrl + Shift + R`) để cùng dùng bản mới nhất. |
 | Không có tiếng | Bấm vào trang một lần (trình duyệt chỉ phát âm thanh sau thao tác đầu tiên), rồi kiểm tra ⚙ Settings. |
 | Vừa cập nhật mà không thấy thay đổi | GitHub Pages mất khoảng 1 phút để cập nhật; tải lại hẳn trang bằng `Cmd/Ctrl + Shift + R`. |
@@ -114,13 +114,14 @@ battleship/
 ├── index.html          # Toàn bộ game (HTML + CSS + JS)
 ├── assets/
 │   ├── sfx/            # Hiệu ứng âm thanh (.m4a)
+│   ├── vendor/         # mqtt.js (thư viện kết nối, MIT)
 │   └── music/          # Nhạc nền (.m4a)
 └── docs/
     ├── RESEARCH.md     # Research về game, âm thanh, thiết kế các phiên bản
     └── UI-GUIDE.md     # Quy tắc giao diện: màu, font, component, chuyển động
 ```
 
-- Kết nối: [PeerJS](https://peerjs.com/) (WebRTC), dùng máy chủ kết nối miễn phí của PeerJS.
+- Kết nối: [mqtt.js](https://github.com/mqttjs/MQTT.js) qua WebSocket bảo mật, chuyển tiếp tin nhắn qua 3 MQTT broker công cộng cùng lúc (EMQX, HiveMQ, Mosquitto). Mỗi tin nhắn có số thứ tự và được gửi lại tới khi bên kia xác nhận, nên một broker sập hay điện thoại tạm treo tab cũng không mất nước đi. Không dùng WebRTC nên không bị chặn bởi NAT/4G.
 - Deploy: push lên nhánh `main` là GitHub Pages tự cập nhật.
 
 ## 7. Ghi công

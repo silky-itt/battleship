@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="assets/vendor/mqtt.min.js"></script>
 <style>
 /* Theme tokens: see docs/UI-GUIDE.md ("Golden hour sea"). */
 :root{
@@ -543,7 +543,6 @@ kbd{font-family:inherit;font-size:12px;font-weight:900;border:1px solid var(--pa
 
 const N = 10;
 const ROWS = 'ABCDEFGHIJ';
-const PEER_PREFIX = 'haichien-vn-2026-';
 const PROTO = 3;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const FLIGHT = 620; // ms a shell takes to land
@@ -719,7 +718,7 @@ const shipIcon = id => `<svg viewBox="0 0 ${BY_ID[id].len * 100} 100" aria-hidde
 
 
 /* ================= State ================= */
-let peer = null, conn = null, joinTimer = null, drag = null, viewTimer = null, CELL_STYLE = null, lastPtr = 'mouse';
+let net = null, joinTimer = null, drag = null, viewTimer = null, CELL_STYLE = null, lastPtr = 'mouse';
 const pick = (k, table, d) => { const v = store.get(k, d); return table[v] ? v : d; };
 const S = {
   phase: 'lobby',            // lobby | wait | placing | playing | over
@@ -1176,26 +1175,90 @@ function toast(text, kind = '') {
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, 2600);
 }
 
-/* ================= Networking (PeerJS / WebRTC) ================= */
-function send(m) { if (conn && conn.open) { try { conn.send(m); } catch (e) {} } }
+/* ================= Networking (MQTT relay) ================= */
+// Messages are relayed through public MQTT brokers over secure WebSockets, so any network that can
+// load a web page can play (no WebRTC, no NAT trouble). Every message goes out through all brokers
+// at once, is deduplicated by sequence number and resent until acknowledged, so one broker going
+// down or a phone suspending the tab while the player switches apps doesn't lose any moves.
+const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+const TOPIC = 'sea-battle-silkyitt/room/';
+const RESEND_MS = 1500, PING_MS = 4000, LOST_MS = 90000, READY_MS = 15000, JOIN_MS = 30000;
+
+// net: { id, code, role, clients, remote, open, outSeq, outbox, inSeq, early, lastHeard, tick }
+function send(m) { if (net && net.open) queue(m); }
+function queue(m) {
+  const s = ++net.outSeq;
+  net.outbox.set(s, m);
+  publish({ s, m });
+}
+function publish(e, to) {
+  if (!net || (net.role === 'host' && !(to || net.remote))) return;
+  const topic = TOPIC + net.code + (net.role === 'host' ? '/g/' + (to || net.remote) : '/h');
+  const raw = JSON.stringify(Object.assign({ f: net.id }, e));
+  for (const c of net.clients) if (c.connected) { try { c.publish(topic, raw); } catch (err) {} }
+}
 function randCode() {
   const a = new Uint32Array(6); crypto.getRandomValues(a);
   let s = ''; for (const x of a) s += CODE_CHARS[x % CODE_CHARS.length];
   return s;
 }
 function destroyPeer() {
-  const p = peer, c = conn;
-  peer = null; conn = null;
+  const n = net;
+  net = null;
   clearTimeout(joinTimer);
-  try { c && c.close(); } catch (e) {}
-  try { p && p.destroy(); } catch (e) {}
+  if (!n) return;
+  clearInterval(n.tick);
+  for (const c of n.clients) { try { c.end(); } catch (e) {} } // not forced, so a final 'bye' still goes out
 }
-function newPeer(id) {
-  if (typeof Peer === 'undefined') {
+// Connects to every broker; onReady fires once the first one is subscribed and able to talk.
+function openNet(role, code, onReady) {
+  if (typeof mqtt === 'undefined') {
     lobbyMsg('Could not load the connection library. Check your network and reload.', 'err');
     return null;
   }
-  return id ? new Peer(id, { debug: 0 }) : new Peer({ debug: 0 });
+  const n = {
+    id: randCode() + randCode(), code, role, clients: [], remote: null, open: false,
+    outSeq: 0, outbox: new Map(), inSeq: 0, early: new Map(), lastHeard: Date.now(), tick: 0,
+  };
+  const myTopic = TOPIC + code + (role === 'host' ? '/h' : '/g/' + n.id);
+  let ready = false;
+  BROKERS.forEach((url, i) => {
+    const c = mqtt.connect(url, {
+      clientId: 'sb_' + n.id + '_' + i, keepalive: 30, connectTimeout: 10000,
+      reconnectPeriod: 2000, queueQoSZero: false, forceNativeWebSocket: true,
+    });
+    c.on('connect', () => c.subscribe(myTopic, err => {
+      if (err || net !== n) return;
+      if (!ready) { ready = true; onReady(); }
+      else flushOutbox(); // a broker came back: push anything still unacknowledged through it
+    }));
+    c.on('message', (t, payload) => { if (net === n) onPacket(String(payload)); });
+    c.on('error', () => {});
+    n.clients.push(c);
+  });
+  n.tick = setInterval(() => netTick(n), RESEND_MS);
+  joinTimer = setTimeout(() => {
+    if (net === n && !ready) netFail('Could not reach the game servers. Check your internet connection.');
+  }, READY_MS);
+  return n;
+}
+function flushOutbox() { if (net) for (const [s, m] of net.outbox) publish({ s, m }); }
+function netTick(n) {
+  if (net !== n) return;
+  flushOutbox();
+  if (!n.open) return;
+  const now = Date.now();
+  if (now - (n.lastPing || 0) >= PING_MS) { n.lastPing = now; publish({ p: 1 }); }
+  if (now - n.lastHeard > LOST_MS && !document.hidden) onOppLeft();
+}
+// Timers stop while a phone has the tab in the background, so don't count that time as silence.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && net) { net.lastHeard = Date.now(); flushOutbox(); }
+});
+function netFail(text) {
+  destroyPeer(); setBusy(false);
+  S.phase = 'lobby'; render();
+  lobbyMsg(text, 'err');
 }
 function readName() {
   const n = cleanName($('nameInput').value) || 'Captain';
@@ -1212,28 +1275,12 @@ function createRoom() {
   applyMap();
   setBusy(true); lobbyMsg('Creating room…');
   const code = randCode();
-  const p = newPeer(PEER_PREFIX + code);
-  if (!p) { setBusy(false); return; }
-  peer = p;
-  p.on('open', () => {
-    if (peer !== p) return;
+  const n = openNet('host', code, () => {
     S.code = code; setBusy(false); lobbyMsg('');
     S.phase = 'wait'; render();
   });
-  p.on('connection', c => {
-    if (peer !== p) return;
-    if (conn && conn.open) {
-      c.on('open', () => { try { c.send({ t: 'full' }); } catch (e) {} setTimeout(() => c.close(), 500); });
-      return;
-    }
-    bindConn(c);
-  });
-  p.on('disconnected', () => { if (peer === p && !p.destroyed) { try { p.reconnect(); } catch (e) {} } });
-  p.on('error', e => {
-    if (peer !== p) return;
-    if (e.type === 'unavailable-id') { destroyPeer(); createRoom(); return; }
-    handlePeerError(e);
-  });
+  if (!n) { setBusy(false); return; }
+  net = n;
 }
 
 function joinRoom() {
@@ -1243,59 +1290,65 @@ function joinRoom() {
   destroyPeer();
   S.role = 'guest'; S.code = code;
   setBusy(true); lobbyMsg('Connecting to room ' + code + '…');
-  const p = newPeer();
-  if (!p) { setBusy(false); return; }
-  peer = p;
-  p.on('open', () => { if (peer === p) bindConn(p.connect(PEER_PREFIX + code, { reliable: true })); });
-  p.on('error', e => { if (peer === p) handlePeerError(e); });
-  joinTimer = setTimeout(() => {
-    if (peer === p && !(conn && conn.open)) {
-      destroyPeer(); setBusy(false);
-      lobbyMsg('Connection timed out. Check the room code or try another network.', 'err');
-    }
-  }, 20000);
-}
-
-function handlePeerError(e) {
-  const msgs = {
-    'peer-unavailable': 'Room not found. Check the code.',
-    'network': 'Lost connection to the signaling server. Check your network.',
-    'server-error': 'The connection server is having problems. Try again in a few minutes.',
-    'socket-error': 'Network connection error.',
-    'browser-incompatible': 'This browser does not support WebRTC.',
-    'webrtc': 'Could not open a direct connection (your network may block WebRTC).',
-  };
-  const text = msgs[e.type] || 'Connection error: ' + (e.type || e.message || 'unknown');
-  if (S.phase === 'lobby' || S.phase === 'wait') {
-    destroyPeer(); setBusy(false);
-    S.phase = 'lobby'; render();
-    lobbyMsg(text, 'err');
-  } else if (e.type !== 'network' && e.type !== 'disconnected') {
-    toast(text, 'bad');
-  }
-}
-
-function bindConn(c) {
-  conn = c;
-  c.on('open', () => {
-    if (conn !== c) return;
-    clearTimeout(joinTimer); setBusy(false); lobbyMsg('');
-    const hello = { t: 'hello', v: PROTO, name: S.myName, avatar: S.avatar };
-    if (S.role === 'host') Object.assign(hello, { mode: S.mode, map: S.map });
-    send(hello);
-    startMatch();
-    Snd.jingle('join');
+  const n = openNet('guest', code, () => {
+    queue({ t: 'join' }); // resent every RESEND_MS until the host answers
+    clearTimeout(joinTimer);
+    joinTimer = setTimeout(() => {
+      if (net === n && !n.open) netFail('Room not found, or the host has closed the game. Check the code.');
+    }, JOIN_MS);
   });
-  c.on('data', m => { if (conn === c) onMsg(m); });
-  c.on('close', () => { if (conn === c) onOppLeft(); });
-  c.on('error', () => {});
+  if (!n) { setBusy(false); return; }
+  net = n;
+}
+
+function onPacket(raw) {
+  let e; try { e = JSON.parse(raw); } catch (err) { return; }
+  if (!e || typeof e.f !== 'string' || e.f === net.id) return;
+  const n = net;
+  if (!n.remote) {
+    // Host: a new guest must start with its join. Anything else is a guest we already dropped.
+    if (n.role === 'host') {
+      if (e.s !== 1 || !e.m || e.m.t !== 'join') { publish({ gone: 1 }, e.f); return; }
+    } else {
+      if (!Number.isInteger(e.s)) return;
+      if (e.m && e.m.t === 'full') { onMsg(e.m); return; }
+    }
+    n.remote = e.f; n.inSeq = 0; n.early.clear();
+    if (n.role === 'host') { n.outSeq = 0; n.outbox.clear(); }
+    connOpen();
+    if (net !== n) return;
+  } else if (e.f !== n.remote) {
+    if (n.role === 'host' && e.s === 1 && e.m && e.m.t === 'join') publish({ s: 1, m: { t: 'full' } }, e.f);
+    return;
+  }
+  n.lastHeard = Date.now();
+  if (e.gone) { onOppLeft(); return; }
+  if (Number.isInteger(e.a)) { for (const s of n.outbox.keys()) if (s <= e.a) n.outbox.delete(s); return; }
+  if (!Number.isInteger(e.s)) return;
+  if (e.s > n.inSeq) n.early.set(e.s, e.m);
+  while (net === n && n.early.has(n.inSeq + 1)) {
+    const m = n.early.get(++n.inSeq);
+    n.early.delete(n.inSeq);
+    onMsg(m);
+  }
+  if (net === n) publish({ a: n.inSeq });
+}
+
+function connOpen() {
+  net.open = true; net.lastHeard = Date.now();
+  clearTimeout(joinTimer); setBusy(false); lobbyMsg('');
+  const hello = { t: 'hello', v: PROTO, name: S.myName, avatar: S.avatar };
+  if (S.role === 'host') Object.assign(hello, { mode: S.mode, map: S.map });
+  send(hello);
+  startMatch();
+  Snd.jingle('join');
 }
 
 function onOppLeft() {
   const name = S.oppName;
-  conn = null;
   clearTimeout(viewTimer);
-  if (S.role === 'host' && peer && !peer.destroyed) {
+  if (S.role === 'host' && net) {
+    net.remote = null; net.open = false; net.outbox.clear();
     toast(name + ' left the room. Waiting for a new opponent…');
     S.phase = 'wait'; S.oppName = 'Enemy';
     render();
