@@ -304,10 +304,16 @@ kbd{font-family:inherit;font-size:12px;font-weight:900;border:1px solid var(--pa
 .over-stats span{font-size:12px;color:var(--ink-soft)}
 .over-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:2px dashed var(--panel-border);font-weight:800}
-.switch{width:52px;height:30px;border-radius:999px;border:2px solid var(--wood);background:#d9c7a3;position:relative;cursor:pointer;transition:background .2s}
-.switch::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fffaf0;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
-.switch.on{background:var(--success)}
-.switch.on::after{transform:translateX(22px)}
+.vol{display:flex;align-items:center;gap:10px;flex:0 1 200px;min-width:0}
+.vol output{width:3ch;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft);font-size:13px}
+.slider{--p:100%;flex:1;min-width:0;height:30px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+.slider::-webkit-slider-runnable-track{height:10px;border-radius:999px;border:2px solid var(--wood);background:linear-gradient(90deg,var(--success) var(--p),#d9c7a3 var(--p))}
+.slider::-moz-range-track{height:6px;border-radius:999px;border:2px solid var(--wood);background:linear-gradient(90deg,var(--success) var(--p),#d9c7a3 var(--p))}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-8px;border-radius:50%;border:2px solid var(--wood);background:#fffaf0;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;border:2px solid var(--wood);background:#fffaf0;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.slider:focus-visible{outline:none}
+.slider:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--amber)}
+.slider:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--amber)}
 .credits{font-size:11px;color:var(--ink-soft);margin:14px 0 0}
 
 #toasts{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;z-index:200;pointer-events:none;width:calc(100% - 32px);max-width:420px}
@@ -525,8 +531,8 @@ kbd{font-family:inherit;font-size:12px;font-weight:900;border:1px solid var(--pa
 <div id="setModal" class="modal hidden">
   <div class="card">
     <h2>Settings</h2>
-    <div class="set-row"><span>🎵 Music</span><button id="musicSw" class="switch" aria-label="Music"></button></div>
-    <div class="set-row"><span>🔊 Sound effects</span><button id="sfxSw" class="switch" aria-label="Sound effects"></button></div>
+    <div class="set-row"><span>🎵 Music</span><div class="vol"><input id="musicVol" class="slider" type="range" min="0" max="100" step="1" aria-label="Music volume"><output id="musicVolOut"></output></div></div>
+    <div class="set-row"><span>🔊 Sound effects</span><div class="vol"><input id="sfxVol" class="slider" type="range" min="0" max="100" step="1" aria-label="Sound effects volume"><output id="sfxVolOut"></output></div></div>
     <div class="over-btns" style="margin-top:16px">
       <button id="leaveBtn" class="btn orange hidden">Leave Room</button>
       <button id="closeSet" class="btn primary">Close</button>
@@ -813,8 +819,12 @@ function validFleet(f) {
 /* ================= Audio: CC0 samples via Web Audio + small synth ================= */
 const Snd = {
   ctx: null, sfxGain: null, musicGain: null, bufs: {}, loading: {},
-  sfxOn: store.get('hc-sfx', '1') === '1',
-  musicOn: store.get('hc-music', '1') === '1',
+  // Volume 0-100; falls back to the old on/off setting so muted players stay muted.
+  sfxVol: +store.get('hc-sfx-vol', store.get('hc-sfx', '1') === '1' ? '100' : '0'),
+  musicVol: +store.get('hc-music-vol', store.get('hc-music', '1') === '1' ? '100' : '0'),
+  get sfxOn() { return this.sfxVol > 0; },
+  get musicOn() { return this.musicVol > 0; },
+  SFX_MAX: 0.9, MUSIC_MAX: 0.3,
   cur: null, curName: null, want: null,
   FILES: {
     fire: ['fire'], miss: ['miss'], splash: ['splash1', 'splash2'], hit: ['hit', 'hit2'], boom: ['hit2'],
@@ -824,8 +834,8 @@ const Snd = {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     const master = this.ctx.createGain(); master.connect(this.ctx.destination);
-    this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = 0.9; this.sfxGain.connect(master);
-    this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = 0.3; this.musicGain.connect(master);
+    this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = this.SFX_MAX * this.sfxVol / 100; this.sfxGain.connect(master);
+    this.musicGain = this.ctx.createGain(); this.musicGain.gain.value = this.MUSIC_MAX * this.musicVol / 100; this.musicGain.connect(master);
     new Set(Object.values(this.FILES).flat()).forEach(n => this.load('sfx/' + n));
     if (this.want) this.setMusic(this.want);
   },
@@ -876,6 +886,16 @@ const Snd = {
     this.cur = null;
   },
   stopMusic() { this.fadeOut(); this.curName = null; },
+  setVolume(kind, v) {
+    const wasOn = this.musicOn;
+    this[kind + 'Vol'] = v;
+    store.set('hc-' + kind + '-vol', String(v));
+    const g = kind === 'sfx' ? this.sfxGain : this.musicGain;
+    if (g) g.gain.setTargetAtTime((kind === 'sfx' ? this.SFX_MAX : this.MUSIC_MAX) * v / 100, this.ctx.currentTime, 0.03);
+    if (kind === 'music' && wasOn !== this.musicOn) {
+      if (this.musicOn) { this.curName = null; this.setMusic(this.want || 'lobby'); } else this.stopMusic();
+    }
+  },
   tone({ t = 0, dur, type = 'triangle', f0, f1 = f0, gain = 0.15 }) {
     if (!this.sfxOn || !this.ctx) return;
     const c = this.ctx, now = c.currentTime + t;
@@ -2069,10 +2089,10 @@ function renderLobbyPickers() {
   }).join('');
 }
 function renderSettings() {
-  $('musicSw').classList.toggle('on', Snd.musicOn);
-  $('musicSw').setAttribute('aria-pressed', String(Snd.musicOn));
-  $('sfxSw').classList.toggle('on', Snd.sfxOn);
-  $('sfxSw').setAttribute('aria-pressed', String(Snd.sfxOn));
+  ['music', 'sfx'].forEach(k => {
+    const v = Snd[k + 'Vol'], el = $(k + 'Vol');
+    el.value = v; el.style.setProperty('--p', v + '%'); $(k + 'VolOut').textContent = v;
+  });
 }
 
 /* ================= Events ================= */
@@ -2108,13 +2128,11 @@ $('gearBtn').addEventListener('click', () => { Snd.play('click'); renderSettings
 $('closeSet').addEventListener('click', () => $('setModal').classList.add('hidden'));
 $('setModal').addEventListener('click', e => { if (e.target === $('setModal')) $('setModal').classList.add('hidden'); });
 $('leaveBtn').addEventListener('click', () => { $('setModal').classList.add('hidden'); leaveRoom(); });
-$('sfxSw').addEventListener('click', () => {
-  Snd.sfxOn = !Snd.sfxOn; store.set('hc-sfx', Snd.sfxOn ? '1' : '0'); renderSettings(); Snd.play('click');
+['music', 'sfx'].forEach(k => {
+  $(k + 'Vol').addEventListener('input', e => { Snd.setVolume(k, +e.target.value); renderSettings(); });
 });
-$('musicSw').addEventListener('click', () => {
-  Snd.musicOn = !Snd.musicOn; store.set('hc-music', Snd.musicOn ? '1' : '0'); renderSettings();
-  if (Snd.musicOn) { Snd.curName = null; Snd.setMusic(Snd.want || 'lobby'); } else Snd.stopMusic();
-});
+// Preview the new effects level once the drag ends.
+$('sfxVol').addEventListener('change', () => Snd.play('click'));
 
 $('boardMine').addEventListener('pointerdown', e => {
   const el = e.target.closest('.ship.draggable');
